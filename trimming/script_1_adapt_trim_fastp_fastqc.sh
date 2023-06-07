@@ -1,5 +1,5 @@
 #metadata_version: 1.0.0
-#script_version: 1.0.0
+#script_version: 1.1.0
 #software: [fastp: 0.23.2, fastqc: 0.12.1]
 #environment: local # one of (hpc, local, any)
 #author: Vasyl Vaskivskyi
@@ -18,6 +18,10 @@
 # - fastp reports
 # - fastqc reports
 # - fastqc archives
+
+
+eval "$(conda shell.bash hook)"
+conda activate smartseq2
 
 r1=$1
 r2=$2
