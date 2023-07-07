@@ -60,9 +60,6 @@ Run IQ-tree on the sequence alignment produced by splace
 ``` bash
 ml bioinfo-ugrp-modules Other/iqtree
 
-mkdir /flash/HusnikU/Dewi/Phylogeny/Bacillariales/splace/iqtree
-cd /flash/HusnikU/Dewi/Phylogeny/Bacillariales/splace/iqtree
-
 # it might be a good idea to request more ressources to run iqtree here
 iqtree -s /flash/HusnikU/Dewi/Phylogeny/Bacillariales/splace/Bacillariales_result/final_concat_aligned_Bacillariales_simple.fasta -m TEST -bb 1000 -alrt 1000
 
