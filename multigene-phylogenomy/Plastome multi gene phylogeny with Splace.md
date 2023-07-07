@@ -15,6 +15,7 @@ Code by Dewi, uses Geneious (locally) and splace, mafft and iqtree on Deigo
 3- export all the sequences list to fasta file (Export/Multiple files/FASTA sequences-alignment)
 
 ## install Splace
+Lab members should be able to run splace from my home directory (/home/d/dewi-langlet/splace/), if not, install it yourself:
 ``` bash
 git clone https://github.com/reinator/splace.git
 
