@@ -1,4 +1,10 @@
-# Binning pipeline using Metabat2, CONCOCT, and Semibin
+# Binning pipeline using Metabat2, CONCOCT, Semibin, and DASTool
+# Info
+This pipeline will align provided reads against the provided assemblies, and use the provided assemblies
+and the created .bam files to perform binning. Binning will be performed using Metabat2, CONCOCT, and Semibin,
+and subsequently refined using DASTool.
+
+
 ## Input
 The pipeline requires reads as paired .fastq files, as well as assembled fasta files.
 Both need to be placed in their own directories, and named similarly (or at least in the same alphabetical order) to ensure they occupy the same index in their respective arrays.
