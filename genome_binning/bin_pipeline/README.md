@@ -23,11 +23,11 @@ Line 23: out_dir=/Path/To/Output <-- Change the path to your desired output fold
 
 Line 25: conda_ex=/Path/To/Conda <-- Change the path to the path of your conda installation executable
 
-Line 31: assemblies=(\*.extension) <-- Change the extension to whatever the extension of your assemblies is
+Line 31: assemblies=(\*.extension) <-- Change the extension to whatever the extension of your assemblies files are
 
-Line 36: reads1=(/${rawreads_dir}/\*.extension) <-- Change the extension to whatever the extension of your reads is
+Line 36: reads1=(/${rawreads_dir}/\*.extension) <-- Change the extension to whatever the extension of your read files are
 
-Line 36: reads2=(/${rawreads_dir}/\*.extension) <-- Change the extension to whatever the extension of your reads is
+Line 36: reads2=(/${rawreads_dir}/\*.extension) <-- Change the extension to whatever the extension of your read files are
 
 
 If all variables are correct, just run the script using "sbatch Binning_pipeline.slurm"
