@@ -97,7 +97,3 @@ for i in $bins; do /apps/unit/HusnikU/megan/tools/blast2rma -i ${id_out_dir}/${b
 for i in $bins; do /apps/unit/HusnikU/megan/tools/blast2lca -i ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct_bins}_MEGAN/${i}.blast -f BlastXML -m BlastN -o ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct_bins}_MEGAN/${i}.lca; done
 for i in $bins; do python3 /bucket/HusnikU/Unit_Members/Arno/Scripts/MEGAN_LCA_summary.py ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct_bins}_MEGAN/${i}.lca ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct_bins}_MEGAN/${i}_lca_summary 5; done
 
-
-
-
-
