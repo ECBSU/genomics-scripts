@@ -72,7 +72,7 @@ echo "BLASTing SSU sequences"
 echo "-----------------------------------------------"
 
 #blast extracted 16S sequences against ncbi NT
-for i in ${bins}; do blastn -db nt -outfmt 6 -query ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct_bins}_barrnap/${i}_total.fasta -out ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct_bins}_barrnap/${i}_SSU_blast -num_threads 32; done
+for i in ${bins}; do blastn -db nt -outfmt "6 qseqid sseqid sscinames pident length mismatch gapopen qstart qend sstart send evalue bitscore" -query ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct_bins}_barrnap/${i}_total.fasta -out ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct_bins}_barrnap/${i}_SSU_blast -num_threads 32; done
 
 ##################################
 #MEGAN ANALYSES
