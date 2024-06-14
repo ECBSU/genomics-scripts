@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-"""Convert a GFF and associated FASTA file into GenBank format.
-
+"""Annotate pseudofinder output using PROKKA input for pathwaytools
 Usage:
     annotate_pseudofinder.py -i <pseudofinder intact gff file> -p <prokka gff> -o <output gff>
 """
