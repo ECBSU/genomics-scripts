@@ -80,6 +80,7 @@ metabat2 -i ${assembly_dir}/${assemblies[${SLURM_ARRAY_TASK_ID}]} -a ${assemblie
 #Activate concoct conda env
 source ${conda_ex}
 conda activate /apps/unit/HusnikU/Conda-envs/concoct
+concoct -v
 #Run concoct and its associated python scripts
 echo "-----------------------------------------------"
 echo "Running Concoct and its scripts"
@@ -105,6 +106,7 @@ conda activate /apps/unit/HusnikU/Conda-envs/semibin
 echo "-----------------------------------------------"
 echo "Running Semibin"
 echo "-----------------------------------------------"
+SemiBin2 -v
 SemiBin2 single_easy_bin -i $assembly_dir/${assemblies[${SLURM_ARRAY_TASK_ID}]} -b ./${assemblies[${SLURM_ARRAY_TASK_ID}]}.bam --environment global -o ${out_dir}/${assemblies[${SLURM_ARRAY_TASK_ID}]}_semibin
 
 #RUN DASTOOL
