@@ -20,7 +20,8 @@ performance, the script will also not be pushed to github. (It can be called fro
 
 ## Input
 The script takes a directory as input, and analyzes each fasta file in the directory. By default it takes genome 
-fasta files, but it can be modified to take CDS or protein sequences instead (which will run much faster, albeit potentially less sensitive). 
+fasta files, but it can be modified to take CDS or protein sequences instead (which will run much faster, although they could
+potentially be less sensitive). 
 
 The input is hardcoded, so needs to be adjusted in the script itself.
 Please change the following lines to suit your case:
