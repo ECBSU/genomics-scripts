@@ -30,7 +30,7 @@ cd $output_dir
 #########################
 source /home/a/arno-hagenbeek/miniconda3/etc/profile.d/conda.sh #This and the following line initiate the conda env
 conda activate /home/a/arno-hagenbeek/miniconda3/envs/eggnog-mapper
-emapper.py --data_dir /bucket/HusnikU/Databases/Eggnog_db/Eggnog_Diamond_db/ -i ${input_dir}/${sf[${SLURM_ARRAY_TASK_ID}]} --itype genome --translate -o ${output_dir}/${sf[${SLURM_ARRAY_TASK_ID}]} --cpu 32
+emapper.py --data_dir /bucket/HusnikU/Databases/Eggnog_db/Eggnog_Diamond_db/ -i ${input_dir}/${sf[${SLURM_ARRAY_TASK_ID}]} --itype genome -o ${output_dir}/${sf[${SLURM_ARRAY_TASK_ID}]} --cpu 32
 
 #########################
 #Invoke black coding magic to run Arno's script of horrible spaghetti code
