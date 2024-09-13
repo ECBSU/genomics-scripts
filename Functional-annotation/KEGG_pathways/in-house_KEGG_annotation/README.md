@@ -34,8 +34,8 @@ Line 17: output_dir=/path/to/dir <-- Change the path to your desired output fold
 
 Line 18: extension=.fasta <-- Change "fasta" to the extension used in your fasta file (usually fna, faa, fa, or fasta)
 
-If you want to run on CDS or proteins you will have to change line 33 as well:\n
-CDS: --itype genome -> --itype CDS --translate (--translate is optional, but should be faster)\n
+If you want to run on CDS or proteins you will have to change line 33 as well:<br/>
+CDS: --itype genome -> --itype CDS --translate (--translate is optional, but should be faster)<br/>
 Proteins: --itype genome -> --itype proteins 
 
 If all variables are correct, just run the script using "sbatch KEGGstand.slurm"
