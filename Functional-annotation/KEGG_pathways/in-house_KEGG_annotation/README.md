@@ -20,7 +20,7 @@ performance, the script will also not be pushed to github. (It can be called fro
 
 ## Input
 The script takes a directory as input, and analyzes each fasta file in the directory. By default it takes genome 
-fasta files, but it can be modified to take CDS or protein sequences instead (which will run much faster). 
+fasta files, but it can be modified to take CDS or protein sequences instead (which will run much faster, albeit potentially less sensitive). 
 
 The input is hardcoded, so needs to be adjusted in the script itself.
 Please change the following lines to suit your case:
@@ -34,8 +34,8 @@ Line 17: output_dir=/path/to/dir <-- Change the path to your desired output fold
 Line 18: extension=.fasta <-- Change "fasta" to the extension used in your fasta file (usually fna, faa, fa, or fasta)
 
 If you want to run on CDS or proteins you will have to change line 33 as well:
-CDS: --itype genome -> --itype CDS
-Proteins: --itype genome --translate -> --itype proteins 
+CDS: --itype genome -> --itype CDS --translate (--translate is optional, but should be faster)
+Proteins: --itype genome -> --itype proteins 
 
 If all variables are correct, just run the script using "sbatch KEGGstand.slurm"
 
