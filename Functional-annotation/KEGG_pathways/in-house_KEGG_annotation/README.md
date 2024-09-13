@@ -14,9 +14,9 @@ EggNOG appears to give more results than blastKOALA (approx. 3% more K terms). E
 slightly more complete than when running the KEGG workflow. I do not know whether these additional hits are 
 due to better sensitivity (more true positives), or due to less stringency (more false positives).
 
-For now the python script is still undergoing validation. My tests show it performs well, but untill more
+For now the python script is still undergoing validation. My tests show it performs well, but until more
 exhaustive tests are done, please perform some validation of your results. Until I am more confident of its
-performance, the script will not be pushed to github. (It can be called from Deigo normally, as per the script). 
+performance, the script will also not be pushed to github. (It can be called from Deigo normally, as per the script). 
 
 ## Input
 The script takes a directory as input, and analyzes each fasta file in the directory. By default it takes genome 
