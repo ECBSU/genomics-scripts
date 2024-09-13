@@ -12,7 +12,7 @@ using "sbatch KEGGstand.slurm"
 ## Important notes: 
 EggNOG appears to give more results than blastKOALA (approx. 3% more K terms). Expect to find modules to be 
 slightly more complete than when running the KEGG workflow. I do not know whether these additional hits are 
-due to better sensitivity (more true positives), or due less stringency (more false positives).
+due to better sensitivity (more true positives), or due to less stringency (more false positives).
 
 For now the python script is still undergoing validation. My tests show it performs well, but untill more
 exhaustive tests are done, please perform some validation of your results. Until I am more confident of its
