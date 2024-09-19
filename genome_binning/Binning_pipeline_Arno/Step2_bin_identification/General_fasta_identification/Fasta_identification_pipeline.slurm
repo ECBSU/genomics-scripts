@@ -40,8 +40,8 @@ echo "-----------------------------------------------"
 echo "Running Barrnap"
 echo "-----------------------------------------------"
 barrnap ${bins[${SLURM_ARRAY_TASK_ID}]} --kingdom bac --outseq ${id_out_dir}/barrnap/${bins[${SLURM_ARRAY_TASK_ID}]}_bac.fasta
-barrnap $${bins[${SLURM_ARRAY_TASK_ID}]} --kingdom arc --outseq ${id_out_dir}/barrnap/${bins[${SLURM_ARRAY_TASK_ID}]}_arc.fasta
-barrnap $${bins[${SLURM_ARRAY_TASK_ID}]} --kingdom euk --outseq ${id_out_dir}/barrnap/${bins[${SLURM_ARRAY_TASK_ID}]}_euk.fasta
+barrnap ${bins[${SLURM_ARRAY_TASK_ID}]} --kingdom arc --outseq ${id_out_dir}/barrnap/${bins[${SLURM_ARRAY_TASK_ID}]}_arc.fasta
+barrnap ${bins[${SLURM_ARRAY_TASK_ID}]} --kingdom euk --outseq ${id_out_dir}/barrnap/${bins[${SLURM_ARRAY_TASK_ID}]}_euk.fasta
 cat ${id_out_dir}/barrnap/${bins[${SLURM_ARRAY_TASK_ID}]}_bac.fasta ${id_out_dir}/barrnap/${bins[${SLURM_ARRAY_TASK_ID}]}_arc.fasta ${id_out_dir}/barrnap/${bins[${SLURM_ARRAY_TASK_ID}]}_euk.fasta > ${id_out_dir}/barrnap/${bins[${SLURM_ARRAY_TASK_ID}]}_total.fasta
 
 #Remove the intermediate barrnap outputs
@@ -76,7 +76,7 @@ echo "-----------------------------------------------"
 
 #Run MEGAN BLAST2LCA script, and summarize LCA using python script
 /apps/unit/HusnikU/megan/tools/blast2lca -i ${id_out_dir}/MEGAN/${bins[${SLURM_ARRAY_TASK_ID}]}.blast -f BlastXML -m BlastN -o ${id_out_dir}/MEGAN/${bins[${SLURM_ARRAY_TASK_ID}]}.lca
-python3 /bucket/HusnikU/Unit_Members/Arno/Scripts/MEGAN_LCA_summary.py {id_out_dir}/MEGAN/${bins[${SLURM_ARRAY_TASK_ID}]}.lca {id_out_dir}/MEGAN/${bins[${SLURM_ARRAY_TASK_ID}]}_LCA_summary 5
+python3 /bucket/HusnikU/Unit_Members/Arno/Scripts/MEGAN_LCA_summary.py ${id_out_dir}/MEGAN/${bins[${SLURM_ARRAY_TASK_ID}]}.lca ${id_out_dir}/MEGAN/${bins[${SLURM_ARRAY_TASK_ID}]}_LCA_summary 5
 
 
 
