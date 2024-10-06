@@ -12,12 +12,14 @@ The script also requires one or multiple "fractions" as input. BUSCOs are not ne
 Therefore, only considering genes shared by all provided organisms often results in trees built based on very few genes, or outright failure. To prevent this, 
 a for which the gene needs to be present can be provided. 
 For example, 0.8 analyzes genes shared by at least 80% of provided organisms. For the organisms missing this gene, it will be a gap in the final output. 
-A fraction of 0 will result in analyzing every gene (at the cost of generating many gaps), and a fraction of 1 will result in only analyzing genes shared by all organisms (often resulting in few genes). To more easily find the optimal fraction, multiple can be provided to the script in a comma delimited format (e.g. 0.77,0.8,0.9,0.999999)
+A fraction of 0 will result in analyzing every gene (at the cost of generating many gaps), and a fraction of 1 will result in only analyzing genes shared by all organisms (often resulting in few genes). To more easily find the optimal fraction, multiple can be provided to the script in a comma delimited format (e.g. 0.77,0.8,0.9,0.999999). 
+
+Note on time allotment: Deigo slurm scripts require a hardcoded time allotment. Longer is better, but will also make it harder for the server to schedule your job (resulting in longer queue times). The default of the script is 12h, which is sufficient to run a single fraction for 50 organisms. Adding fractions will aproximately multiply the required time.
 
 Any input is hardcoded, so needs to be adjusted in the script itself.
 Please change the following lines to suit your case:
 
-Line 5: #SBATCH -t 0-12 <-- Change to the time allotment of the script (the left number denotes days, the right denotes hours). Times should be longer, especially for multiple fractions or large inputs. 12h tends to be sufficient for a single run for 50 organisms. Adding more organisms will result in minor increases in time, while multiple fractions result in multiplication. 
+Line 5: #SBATCH -t 0-12 <-- Change to the time allotment of the script (the left number denotes days, the right denotes hours). 12h tends to be sufficient for a single run/fraction for 50 organisms.
 
 Line 20: input_dir=/Path/To/X <-- Change the path to the path of your directory containing the BUSCO output directories
 
