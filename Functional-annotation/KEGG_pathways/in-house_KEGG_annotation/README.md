@@ -10,9 +10,12 @@ This script is a .slurm script that (after giving your input) can be run directl
 using "sbatch KEGGstand.slurm"
 
 ## Important notes: 
-EggNOG appears to give more results than blastKOALA (approx. 3% more K terms). Expect to find modules to be 
-slightly more complete than when running the KEGG workflow. I do not know whether these additional hits are 
-due to better sensitivity (more true positives), or due to less stringency (more false positives).
+EggNOG appears to give more results than blastKOALA (approx. 3% more K terms). On the other hand, EggNOG can miss k terms that are found by blastKOALA. In my tests, 
+roughly 8% of k terms were unique to EggNOG, 4% were unique to blastKOALA and 88% were shared. This translated to a similar ratio in module completion. 
+
+Several KEGG modules contain "non-essential genes". While part of the module, they are not strictly required for module functionality, and thus the pipeline does not
+consider them for calculating module completion (similar to KEGG's approach). Though not counted towards module completion, if non-essential genes of a module are found in the organism, 
+they will be included in the output for reference. 
 
 For now the python script is still undergoing validation. My tests show it performs well, but until more
 exhaustive tests are done, please perform some validation of your results. Until I am more confident of its
@@ -45,8 +48,7 @@ The output will be generated in the specified folder. It includes the regular Eg
 the python script. By default these are:
 
 input_fasta.emapper.annotations_KEGG_complete_modules.tsv = Tab-delimited text file only containing the modules found to be 
-100% complete. First column is the module name, the second one lists the gene K terms found to comprise this complete module. 
+100% complete. The columns from left to right are: KEGG entry, KEGG name, highest completion (as a fraction 0-1), the genes comprising the most complete pathways, and any potential non-essential genes found for the module.  
 
 input_fasta.emapper.annotations_KEGG_completion.tsv = Tab-delimited text file showing the found completion for each KEGG
-module. First column is the module name, the second one shows the completion (as a fraction 0-1), and the third lists the gene 
-K terms comprising the most complete possibility for this module. 
+module. The columns from left to right are: KEGG entry, KEGG name, highest completion expressed as a fraction, the genes comprising the most complete pathways, and any potential non-essential genes found for the module.  
