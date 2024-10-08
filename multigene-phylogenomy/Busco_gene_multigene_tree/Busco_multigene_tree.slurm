@@ -27,4 +27,4 @@ iqtree_cmd="iqtree2 -s {} --prefix {} -bb 1000 -T 64" #Command used to execute i
 #########################
 #Run script
 #########################
-python /bucket/HusnikU/Unit_Members/Arno/Scripts/Busco_multigene_tree.py $input_dir $output_dir $fraction $MAFFT_cmd $trimal_cmd $iqtree_cmd
+python /bucket/HusnikU/Unit_Members/Arno/Scripts/Busco_multigene_tree.py $input_dir $output_dir $fraction "$MAFFT_cmd" "$trimal_cmd" "$iqtree_cmd"
