@@ -14,6 +14,8 @@ a for which the gene needs to be present can be provided.
 For example, 0.8 analyzes genes shared by at least 80% of provided organisms. For the organisms missing this gene, it will be a gap in the final output. 
 A fraction of 0 will result in analyzing every gene (at the cost of generating many gaps), and a fraction of 1 will result in only analyzing genes shared by all organisms (often resulting in few genes). To more easily find the optimal fraction, multiple can be provided to the script in a comma delimited format (e.g. 0.77,0.8,0.9,0.999999). 
 
+If you wish, the script also allows you to modify the MAFFT, trimal, and iqtree commands to match your needs. These commands contain two {} values. Python substitutes these with the appropriate input and output values. Please leave these parts unchanged.  
+
 Note on time allotment: Deigo slurm scripts require a hardcoded time allotment. Longer is better, but will also make it harder for the server to schedule your job (resulting in longer queue times). The default of the script is 12h, which is sufficient to run a single fraction for 50 organisms. Adding fractions will aproximately multiply the required time.
 
 Any input is hardcoded, so needs to be adjusted in the script itself.
@@ -25,7 +27,9 @@ Line 20: input_dir=/Path/To/X <-- Change the path to the path of your directory 
 
 Line 21: output_dir=/Path/To/X <-- Change the path to your desired output folder (probably somewhere on /flash)
 
-Line 22: fraction=number <-- Change number to desired fraction (see above for explanation. 
+Line 22: fraction=number <-- Change number to desired fraction (see above for explanation). 
+
+Line 23-25 <- Tool commands that can be changed to match your desired commands. 
 
 If all variables are correct, just run the script using "sbatch Busco_multigene_tree.slurm"
 
