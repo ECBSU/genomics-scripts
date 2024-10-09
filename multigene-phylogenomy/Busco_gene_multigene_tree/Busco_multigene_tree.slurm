@@ -22,7 +22,7 @@ output_dir= #Directory to which to write the output
 fraction=0.8 #fraction of organisms a gene needs to be present in for it to be included in the analysis
 MAFFT_cmd="mafft --globalpair --maxiterate 1000 --thread 64 {} > {}" #Command used to execute mafft. Arguments can be modified or added freely. The {} denote input and output respectively, please leave unmodified.
 trimal_cmd="/home/a/arno-hagenbeek/trimal/trimal/source/trimal -in {} -out {} -automated1" #Command used to execute trimal. Arguments can be modified or added freely. The {} denote input and output respectively, please leave unmodified.
-iqtree_cmd="iqtree2 -s {} --prefix {} -bb 1000 -T 64" #Command used to execute iqtree. Arguments can be modified or added freely. The {} denote input and output respectively, please leave unmodified.
+iqtree_cmd="iqtree2 -s {} --prefix {} -bb 1000 -T 64 --redo" #Command used to execute iqtree. Arguments can be modified or added freely. The {} denote input and output respectively, please leave unmodified.
 
 #########################
 #Run script
