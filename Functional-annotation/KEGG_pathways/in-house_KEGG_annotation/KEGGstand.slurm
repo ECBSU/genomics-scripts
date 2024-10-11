@@ -2,7 +2,7 @@
 
 #SBATCH -p compute
 #SBATCH --output=KEGG_stand_%a.out
-#SBATCH -t 0-12
+#SBATCH -t 0-4
 #SBATCH --mem=40G
 #SBATCH -c 32
 #SBATCH --array=0-0   #CHANGE THIS TO MATCH THE NUMBER OF FASTA FILES 0-0=1 0-2=3 0-6=7 ETC.
@@ -30,7 +30,7 @@ cd $output_dir
 #########################
 source /home/a/arno-hagenbeek/miniconda3/etc/profile.d/conda.sh #This and the following line initiate the conda env
 conda activate /home/a/arno-hagenbeek/miniconda3/envs/eggnog-mapper
-emapper.py --data_dir /bucket/HusnikU/Databases/Eggnog_db/Eggnog_Diamond_db/ -i ${input_dir}/${sf[${SLURM_ARRAY_TASK_ID}]} --itype genome -o ${output_dir}/${sf[${SLURM_ARRAY_TASK_ID}]} --cpu 32
+emapper.py -m mmseqs --mmseqs_db /bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Standard.mmseqs/mmseqs.db --data_dir /bucket/HusnikU/Databases/Eggnog_db/Eggnog_Diamond_db/ -i ${input_dir}/${sf[${SLURM_ARRAY_TASK_ID}]} --itype genome -o ${output_dir}/${sf[${SLURM_ARRAY_TASK_ID}]} --cpu 32
 
 #########################
 #Invoke black coding magic to run Arno's script of horrible spaghetti code
