@@ -39,6 +39,7 @@ Line 18: extension=.fasta <-- Change "fasta" to the extension used in your fasta
 
 Line 33: (OPTIONAL) By default, the EggNOG command will search the standard EggNOG database. If working with bacterial genomes, I strongly recommend changing to the bacterial database by replacing: 
 /bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Standard.mmseqs/mmseqs.db
+
 with 
 /bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Bacteria.mmseqs/Bacteria.mmseqs
 
