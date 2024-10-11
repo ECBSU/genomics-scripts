@@ -37,11 +37,8 @@ Line 17: output_dir=/path/to/dir <-- Change the path to your desired output fold
 
 Line 18: extension=.fasta <-- Change "fasta" to the extension used in your fasta file (usually fna, faa, fa, or fasta)
 
-Line 33: (OPTIONAL) By default, the EggNOG command will search the standard EggNOG database. If working with bacterial genomes, I strongly recommend changing to the bacterial database by replacing: 
-/bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Standard.mmseqs/mmseqs.db
-
-with 
-/bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Bacteria.mmseqs/Bacteria.mmseqs
+Line 33: (OPTIONAL) By default, the EggNOG command will search the standard EggNOG database. If you're working with bacterial genomes, I strongly recommend changing to the bacterial database by replacing: 
+/bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Standard.mmseqs/mmseqs.db --> /bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Bacteria.mmseqs/Bacteria.mmseqs 
 
 
 If all variables are correct, just run the script using "sbatch KEGGstand.slurm"
