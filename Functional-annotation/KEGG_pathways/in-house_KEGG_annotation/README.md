@@ -17,7 +17,7 @@ Several KEGG modules contain "non-essential genes". While part of the module, th
 consider them for calculating module completion (similar to KEGG's approach). Though not counted towards module completion, if non-essential genes of a module are found in the organism, 
 they will be included in the output for reference. 
 
-The script is currently incapable of interpreting the "module set" modules. These modules contain other modules, rather than gene K terms, for which the script is not designed. These modules are thus not included in the results  
+The script is currently incapable of interpreting the "module set" modules (M00611-M00618 and M00620). These modules contain other modules, rather than gene K terms, for which the script is not designed. These modules are thus not included in the results  
 
 The KEGG module calculation script is currently undergoing validation. It has been tested on 26 genomes so far. Given the same input, the script has identical complete modules as the KEGG webserver (with the exception of the "module set" modules mentioned above) in the tested genomes. 
 
