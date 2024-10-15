@@ -17,9 +17,9 @@ Several KEGG modules contain "non-essential genes". While part of the module, th
 consider them for calculating module completion (similar to KEGG's approach). Though not counted towards module completion, if non-essential genes of a module are found in the organism, 
 they will be included in the output for reference. 
 
-For now the python script is still undergoing validation. My tests show it performs well, but until more
-exhaustive tests are done, please perform some validation of your results. Until I am more confident of its
-performance, the script will also not be pushed to github. (It can be called from Deigo normally, as per the script). 
+The script is currently incapable of interpreting the "module set" modules. These modules contain other modules, rather than gene K terms, for which the script is not designed. These modules are thus not included in the results  
+
+The KEGG module calculation script is currently undergoing validation. It has been tested on 26 genomes so far. Given the same input, the script has identical complete modules as the KEGG webserver (with the exception of the "module set" modules mentioned above) in the tested genomes. 
 
 ## Input
 The script takes a directory as input, and analyzes each fasta file in the directory. By default it takes genome 
