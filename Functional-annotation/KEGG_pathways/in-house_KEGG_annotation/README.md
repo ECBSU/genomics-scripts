@@ -11,7 +11,7 @@ using "sbatch KEGGstand.slurm"
 
 ## Important notes: 
 EggNOG appears to give more results than blastKOALA (approx. 3% more K terms). On the other hand, EggNOG can miss k terms that are found by blastKOALA. In my tests, 
-roughly 8% of k terms were unique to EggNOG, 4% were unique to blastKOALA and 88% were shared. This translated to a similar ratio in module completion. 
+roughly 8% of k terms were unique to EggNOG, 4% were unique to blastKOALA and 88% were shared. This translated to a similar ratios in module completion, with EggNOG finding more complete modules than blastKOALA. 
 
 Several KEGG modules contain "non-essential genes". While part of the module, they are not strictly required for module functionality, and thus the pipeline does not
 consider them for calculating module completion (similar to KEGG's approach). Though not counted towards module completion, if non-essential genes of a module are found in the organism, 
