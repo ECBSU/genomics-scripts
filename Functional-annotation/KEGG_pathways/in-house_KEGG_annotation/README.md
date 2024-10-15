@@ -19,7 +19,7 @@ they will be included in the output for reference.
 
 The script is currently incapable of interpreting the "module set" modules (M00611-M00618 and M00620). These modules contain other modules, rather than gene K terms, for which the script is not designed. These modules are thus not included in the results  
 
-The KEGG module calculation script is currently undergoing validation. It has been tested on 26 genomes so far. Given the same input, the script has identical complete modules as the KEGG webserver (with the exception of the "module set" modules mentioned above) in all genomes. 
+The KEGG module calculation script is currently undergoing validation. It has been tested on 50 genomes so far, corresponding to a total of 2265 modules. Given the same input, the script has identical complete modules as the KEGG webserver (with the exception of the "module set" modules mentioned above, and one mistake by KEGG) in all genomes. 
 
 ## Input
 The script takes a directory as input, and analyzes each fasta file in the directory. By default it takes genome 
