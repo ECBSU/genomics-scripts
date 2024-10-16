@@ -1,9 +1,9 @@
 # Slurm script that utilizes EggNOG and a python script to find the completion of KEGG modules
 ## Info
 This script allows for finding KEGG module completion without using the KEGG webserver. It circumvents
-the use of blastKOALA by assessing the K terms present in the genome using EggNOG. A python script is used
+the use of blastKOALA by assessing K terms using EggNOG. A python script is used
 to parse the KEGG definitions of each module, and to then calculate each possible combination of K terms 
-that complete this module into a functional pathway. The script then assess per module which combination 
+that complete this module. The script then assesses per module which combination 
 is most complete given the genome's K terms, and outputs the degree of completion. 
 
 This script is a .slurm script that (after giving your input) can be run directly on the OIST Deigo server 
@@ -17,14 +17,13 @@ Several KEGG modules contain "non-essential genes". While part of the module, th
 consider them for calculating module completion (similar to KEGG's approach). Though not counted towards module completion, if non-essential genes of a module are found in the organism, 
 they will be included in the output for reference. 
 
-The script is currently incapable of interpreting the "module set" modules (M00611-M00618 and M00620). These modules contain other modules, rather than gene K terms, for which the script is not designed. These modules are thus not included in the results  
+The script is currently incapable of interpreting the "module set" modules (M00611-M00618 and M00620). Rather than gene K terms, these modules contain other modules, for which the script is not designed. These modules are thus not included in the results  
 
-The KEGG module calculation script is currently undergoing validation. It has been tested on 50 genomes so far, corresponding to a total of complete 2265 modules. Given the same input, the script has so far yielded identical complete modules as the KEGG webserver, with only 2 exceptions: Firstly, as described above, the script does not consider the 9 "module set" modules, and thus misses them. Secondly, KEGG appears to make a mistake in interpreting non-essential genes in M0009 and M00011, which the script does not replicate. 
+The KEGG module calculation script has so far been tested in 50 genomes (corresponding to a total of 2265 complete modules). Given the same input, the script has so far yielded identical complete modules as the KEGG webserver, with only 2 exceptions: Firstly, as described above, the script does not consider the 9 "module set" modules, and thus misses them. Secondly, KEGG appears to make a mistake in interpreting non-essential genes in M0009 and M00011, which the script does not replicate. 
 
 ## Input
 The script takes a directory as input, and analyzes each fasta file in the directory. By default it takes genome 
-fasta files, but it can be modified to take CDS or protein sequences instead (which will run much faster, although they could
-potentially be less sensitive). 
+fasta files, but it can be modified to take CDS or protein sequences instead (which will run much faster, although  at a likely trade-off in sensitivity). 
 
 The input is hardcoded, so needs to be adjusted in the script itself.
 Please change the following lines to suit your case:
