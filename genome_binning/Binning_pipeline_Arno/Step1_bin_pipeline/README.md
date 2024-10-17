@@ -1,7 +1,7 @@
 # Binning pipeline using Metabat2, CONCOCT, Semibin, and DASTool
 ## Info
 This pipeline will align provided reads against the provided assemblies, and use the provided assemblies
-and the created .bam files to perform binning. Binning will be performed using Metabat2, CONCOCT, and Semibin,
+and the created .bam files to perform binning. Binning will be performed using Metabat2, CONCOCT, Semibin, and Rosella,
 and subsequently refined using DASTool.
 
 This pipeline is a .slurm script that (after giving your input) can be run directly on the OIST Deigo server 
