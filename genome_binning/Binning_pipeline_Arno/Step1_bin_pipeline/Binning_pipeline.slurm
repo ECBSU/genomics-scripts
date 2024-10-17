@@ -19,10 +19,10 @@ ml DB/diamondDB/ncbi
 #INPUT VARIABLES !!CHANGE AS NEEDED!!
 #############################################
 #Insert directories containing only the assemblies and reads for binning
-assembly_dir=/bucket/HusnikU/Unit_Members/Arno/Hostzero_test/Spades_hostZERO_nem5/
-rawreads_dir=/bucket/HusnikU/Unit_Members/Arno/Hostzero_test/reads/
+assembly_dir=/path/to/assembly/dir/
+rawreads_dir=/path/to/read/dir/
 #Output directory
-out_dir=/flash/HusnikU/Arno/Bin_pipeline_test
+out_dir=/path/to/output/dir/
 #Conda installation
 conda_ex=/home/a/arno-hagenbeek/miniconda3/etc/profile.d/conda.sh
 
