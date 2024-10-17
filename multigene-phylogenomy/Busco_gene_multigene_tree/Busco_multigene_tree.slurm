@@ -17,7 +17,7 @@ ml iqtree
 #########################
 #INPUT VARIABLES, CHANGE AS NEEDED!!!
 #########################
-input_dir=/bucket/HusnikU/Unit_Members/Pradeep/Multigene_Phylogeny/Busco/Facultative_bacterial_endosymbionts/  #Directory containing your busco outputs
+input_dir=/path/to/busco/output/dir  #Directory containing your busco outputs
 output_dir= #Directory to which to write the output
 fraction=0.8 #fraction of organisms a gene needs to be present in for it to be included in the analysis
 MAFFT_cmd="mafft --globalpair --maxiterate 1000 --thread 64 {} > {}" #Command used to execute mafft. Arguments can be modified or added freely. The {} denote input and output respectively, please leave unmodified.
