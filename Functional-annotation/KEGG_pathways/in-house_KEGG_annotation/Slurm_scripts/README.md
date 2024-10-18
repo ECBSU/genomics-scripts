@@ -13,8 +13,8 @@ sbatch KEGGstand_protein.slurm
 The script takes a directory as input, and analyzes each fasta file in the directory. The KEGGstand_genome.slurm takes genome or MAG fastas and the KEGGstand_protein.slurm takes protein
 sequence fastas (this can easily be changed by changing the EggNOG command in the slurm script).
 
-The input is hardcoded, so needs to be adjusted in the script itself.
-Please change the following lines to suit your case:
+**The input needs to be hardcoded, so has to be adjusted in the script itself.
+Please change the following lines to suit your case:**
 
 Line 8: #SBATCH --array=0-0 <-- Change the array size to fit your number of samples (0-0 = 1 sample, 0-1 = 2 samples, 0-2 = 3, etc.)  
 Line 16: input_dir=/path/to/dir <-- Change the path to the path of your directory containing the fasta files  
