@@ -16,14 +16,10 @@ sequence fastas (this can easily be changed by changing the EggNOG command in th
 The input is hardcoded, so needs to be adjusted in the script itself.
 Please change the following lines to suit your case:
 
-Line 8: #SBATCH --array=0-0 <-- Change the array size to fit your number of samples (0-0 = 1 sample, 0-1 = 2 samples, 0-2 = 3, etc.)
-
-Line 16: input_dir=/path/to/dir <-- Change the path to the path of your directory containing the fasta files
-
-Line 17: output_dir=/path/to/dir <-- Change the path to your desired output folder (probably somewhere on /flash/HusnikU)
-
-Line 18: extension=.fasta <-- Change "fasta" to the extension used in your fasta file (usually fna, faa, fa, or fasta)
-
+Line 8: #SBATCH --array=0-0 <-- Change the array size to fit your number of samples (0-0 = 1 sample, 0-1 = 2 samples, 0-2 = 3, etc.)  
+Line 16: input_dir=/path/to/dir <-- Change the path to the path of your directory containing the fasta files  
+Line 17: output_dir=/path/to/dir <-- Change the path to your desired output folder (probably somewhere on /flash/HusnikU)  
+Line 18: extension=.fasta <-- Change "fasta" to the extension used in your fasta file (usually fna, faa, fa, or fasta)  
 Line 19: (OPTIONAL) By default, the EggNOG command will search the standard EggNOG database. More specific databases generally work better. You can change the searched database by changing
 the path on this line, with the appropriate database. We currently have:  
 
