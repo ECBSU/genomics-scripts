@@ -25,20 +25,14 @@ Line 17: output_dir=/path/to/dir <-- Change the path to your desired output fold
 Line 18: extension=.fasta <-- Change "fasta" to the extension used in your fasta file (usually fna, faa, fa, or fasta)
 
 Line 19: (OPTIONAL) By default, the EggNOG command will search the standard EggNOG database. More specific databases generally work better. You can change the searched database by changing
-the path on this line, with the appropriate database. We currently have:
+the path on this line, with the appropriate database. We currently have:  
 
-Archaea: /bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Archaea.mmseqs/Archaea.mmseqs
-
-Bacteria: /bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Bacteria.mmseqs/Bacteria.mmseqs
-
-Eukaryotes: /bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Eukaryotes.mmseqs/Eukaryotes.mmseqs
-
-Insects:  /bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Insecta.mmseqs/Insecta.mmseqs
-
-Rickettsiales: /bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Rickettsiales.mmseqs/Rickettsiales.mmseqs
-
-Vibrionales: /bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Vibrionales.mmseqs/Vibrionales.mmseqs
-
+Archaea: /bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Archaea.mmseqs/Archaea.mmseqs  
+Bacteria: /bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Bacteria.mmseqs/Bacteria.mmseqs  
+Eukaryotes: /bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Eukaryotes.mmseqs/Eukaryotes.mmseqs  
+Insects:  /bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Insecta.mmseqs/Insecta.mmseqs  
+Rickettsiales: /bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Rickettsiales.mmseqs/Rickettsiales.mmseqs  
+Vibrionales: /bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Vibrionales.mmseqs/Vibrionales.mmseqs  
 Viridiplantae: /bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Viridiplantae.mmseqs/Viridiplantae.mmseqs/
 
 
