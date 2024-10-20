@@ -22,3 +22,13 @@ Example command:
 ```
 python KEGG_kterm_db_generate.py /db_dir/KEGGstand_kterm_db
 ```
+
+# Current issues and workaround
+The module completion calculation script was written under the assumption that commas could only exist within brackets in a KEGG definition. This turned out to not be the case, and module M00134 and M00745
+do have commas outside of brackets. This causes the script to incorrectly read these definitions. 
+
+**To get these modules to work correctly, please change them manually in the database:**
+
+M00134: K01476,K27545 K01581 -> (K01476,K27545) K01581
+
+M00745: (K18072 K18073),(K07644 K07665),K18297 K18093 -> ((K18072 K18073),(K07644 K07665),K18297) K18093
