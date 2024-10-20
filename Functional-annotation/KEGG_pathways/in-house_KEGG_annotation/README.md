@@ -7,7 +7,7 @@ The complete script is relatively lightweight, taking the same resources as a re
 
 ## Comparability with KEGG
 EggNOG appears to give more results than blastKOALA (approx. 3% more K terms). On the other hand, EggNOG can miss k terms that are found by blastKOALA. In my tests, 
-roughly 8% of k terms were unique to EggNOG, 4% were unique to blastKOALA and 88% were shared. This translated to a similar ratios in module completion, with EggNOG finding more complete modules than blastKOALA. 
+roughly 8% of k terms were unique to EggNOG, 4% were unique to blastKOALA and 88% were shared. This translated to a similar ratio in module completion, with EggNOG finding more complete modules than blastKOALA. 
 
 The script is currently incapable of interpreting the "module set" modules (M00611-M00618 and M00620). Rather than gene K terms, these modules contain other modules, for which the script is not designed. These modules are thus not included in the results  
 
