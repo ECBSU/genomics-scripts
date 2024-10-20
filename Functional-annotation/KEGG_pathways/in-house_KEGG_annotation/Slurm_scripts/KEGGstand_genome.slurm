@@ -24,7 +24,7 @@ EggNOG_mmseq_database=/bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Standar
 KEGGstand_module_checker_path=/bucket/HusnikU/Unit_Members/Arno/Scripts/KEGGstand_module_checker.py
 KEGGstand_pathway_checker_path=/bucket/HusnikU/Unit_Members/Arno/Scripts/KEGGstand_pathway_checker.py
 KEGG_module_database_path=/bucket/HusnikU/Unit_Members/Arno/Scripts/KEGG_modules.txt
-KEGG_pathway_database_path=/bucket/HusnikU/Unit_Members/Arno/Scripts/
+KEGG_pathway_database_path=/bucket/HusnikU/Unit_Members/Arno/Scripts/KEGG_k_entries_db
 conda_source_path=/home/a/arno-hagenbeek/miniconda3/etc/profile.d/conda.sh
 eggnog_path=/home/a/arno-hagenbeek/miniconda3/envs/eggnog-mapper
 
@@ -51,4 +51,4 @@ python $KEGGstand_module_checker_path ${output_dir}/${sf[${SLURM_ARRAY_TASK_ID}]
 #########################
 #Invoke regular coding magic to run Arno's script of slighlty less horrible spaghetti code
 #########################
-#python $KEGGstand_pathway_checker_path ${output_dir}/${sf[${SLURM_ARRAY_TASK_ID}]}.emapper.annotations $KEGG_pathway_database_path
+#python $KEGGstand_pathway_checker_path ${output_dir}/${sf[${SLURM_ARRAY_TASK_ID}]}.emapper.annotations $KEGG_pathway_database_path ${output_dir}/${sf[${SLURM_ARRAY_TASK_ID}]}.emapper.annotations_pathway_and_BRITE $KEGG_pathway_database_path
