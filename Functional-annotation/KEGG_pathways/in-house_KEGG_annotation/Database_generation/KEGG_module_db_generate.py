@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+"""
+Will query the KEGG API server to obtain all the KEGG module defintions, and writes them
+to a text file
+
+Usage:
+(python) KEGG_module_db_generate.py /path/to/db
+"""
 ##############
 #Import statements
 ##############
