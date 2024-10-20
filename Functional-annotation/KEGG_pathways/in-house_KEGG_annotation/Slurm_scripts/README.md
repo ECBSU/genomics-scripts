@@ -44,3 +44,6 @@ input_fasta.emapper.annotations_KEGG_complete_modules.tsv = Tab-delimited text f
 
 input_fasta.emapper.annotations_KEGG_completion.tsv = Tab-delimited text file showing the found completion for each KEGG
 module. The columns from left to right are: KEGG entry, KEGG name, highest completion expressed as a fraction, the genes comprising the most complete pathways, and any potential non-essential genes found for the module.  
+
+input_fasta.emapper.annotations_pathway_and_BRITE: Tab-delimited text file containing two columns. The first column is every KEGG pathway or BRITE category with any assigned gene, listed in hierarchical fashion. 
+The second column is the number of genes found for the pathway or BRITE category within the EggNOG output, given as a fraction of the total number of genes known for the category (e.g. 3/14).
