@@ -1,7 +1,7 @@
 # Resources for the KEGGstand KEGG annotation pipeline
 ## Info
 These are a collection of scripts that allow for assessing KEGG module completion and BRITE completion "in-house". It works by running EggNOG, parsing out the k-terms, and comparing them against customized KEGG databases. 
-If you want to run this pipeline on the OIST Deigo, go to the "Slurm_scripts" directory
+**If you want to run this pipeline on the OIST Deigo, go to the "Slurm_scripts" directory**
 ## Performance: 
 The complete script is relatively lightweight, taking the same resources as a regular EggNOG search. It can process roughly 4 megabases per hour, on the standard EggNOG database, using 32 threads.
 
