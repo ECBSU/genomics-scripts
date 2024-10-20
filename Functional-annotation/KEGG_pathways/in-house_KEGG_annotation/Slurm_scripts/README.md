@@ -1,6 +1,6 @@
 # Slurm script to run the KEGGstand pipeline
 ## Info
-These scripts are the slurm (bash) scripts to automate running the KEGGstand script on the OIST Deigo server. These scripts can (after coding in your input) directly be run on Deigo using:
+These scripts are the slurm (bash) scripts to automate running the KEGGstand script on the OIST Deigo server. These scripts can (**after coding in your input**) directly be run on Deigo using:
 ```
 sbatch KEGGstand_genome.slurm
 ```
