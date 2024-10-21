@@ -51,4 +51,4 @@ python $KEGGstand_module_checker_path ${output_dir}/${sf[${SLURM_ARRAY_TASK_ID}]
 #########################
 #Invoke regular coding magic to run Arno's script of slighlty less horrible spaghetti code
 #########################
-python $KEGGstand_pathway_checker_path ${output_dir}/${sf[${SLURM_ARRAY_TASK_ID}]}.emapper.annotations $KEGG_pathway_database_path ${output_dir}/${sf[${SLURM_ARRAY_TASK_ID}]}.emapper.annotations_pathway_and_BRITE $KEGG_pathway_database_path
+python $KEGGstand_pathway_checker_path ${output_dir}/${sf[${SLURM_ARRAY_TASK_ID}]}.emapper.annotations ${output_dir}/${sf[${SLURM_ARRAY_TASK_ID}]}.emapper.annotations_pathway_and_BRITE $KEGG_pathway_database_path
