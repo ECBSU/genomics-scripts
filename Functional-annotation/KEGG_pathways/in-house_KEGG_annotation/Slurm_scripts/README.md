@@ -25,7 +25,7 @@ the path on this line, with the appropriate database. We currently have:
 **Insects**:  /bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Insecta.mmseqs/Insecta.mmseqs  
 **Rickettsiales**: /bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Rickettsiales.mmseqs/Rickettsiales.mmseqs  
 **Vibrionales**: /bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Vibrionales.mmseqs/Vibrionales.mmseqs  
-**Viridiplantae**: /bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Viridiplantae.mmseqs/Viridiplantae.mmseqs/
+**Viridiplantae**: /bucket/HusnikU/Databases/EggNOG_mmseqs2_databases/Viridiplantae.mmseqs/Viridiplantae.mmseqs
 
 After coding in your input, simply run the script on Deigo:
 ```
