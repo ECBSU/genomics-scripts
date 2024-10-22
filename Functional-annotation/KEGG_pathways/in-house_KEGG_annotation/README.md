@@ -2,8 +2,7 @@
 ## Info
 These are a collection of scripts that allow for assessing KEGG module completion and BRITE completion "in-house". It works by running EggNOG, parsing out the k-terms, and comparing them against customized KEGG databases. 
 **If you want to run this pipeline on the OIST Deigo, go to the "Slurm_scripts" directory**
-## Performance: 
-The complete script is relatively lightweight, taking the same resources as a regular EggNOG search. It can process roughly 4 megabases per hour, on the standard EggNOG database, using 32 threads.
+
 
 ## Comparability with KEGG
 EggNOG appears to give more results than blastKOALA (approx. 3% more K terms). On the other hand, EggNOG can miss k terms that are found by blastKOALA. In my tests, 
@@ -14,6 +13,9 @@ The script is currently incapable of interpreting the "module set" modules (M006
 The KEGG module calculation script has so far been tested in 50 genomes (corresponding to a total of 2265 complete modules). Given the same input, the script has so far yielded identical complete modules as the KEGG webserver, with only 2 exceptions: Firstly, as described above, the script does not consider the 9 "module set" modules, and thus misses them. Secondly, KEGG appears to make a mistake in interpreting non-essential genes in M0009 and M00011, which the script does not replicate. 
 
 The results of the pathway and BRITE results scripts have not been extensively tested. However, these are computationally far more simple to acquire, making mistakes less likely. 
+
+## Performance: 
+The complete pipeline is relatively lightweight, essentially taking the same resources as a regular EggNOG search. EggNOG (set to mmseq2 by default in the pipeline) can process approximately 4 megabases per hour at 32 cores. Comparatively, computation time for the KEGGstand scripts is negligible. The module completion calculation takes 5-8 seconds per sample, and reconstructing the KEGG hierarchy and assigning k-terms takes 2-4 seconds per sample. 
 
 # Contents
 ## Slurm_scripts
