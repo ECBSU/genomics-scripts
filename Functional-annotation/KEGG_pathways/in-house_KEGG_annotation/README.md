@@ -13,6 +13,8 @@ The script is currently incapable of interpreting the "module set" modules (M006
 
 The KEGG module calculation script has so far been tested in 50 genomes (corresponding to a total of 2265 complete modules). Given the same input, the script has so far yielded identical complete modules as the KEGG webserver, with only 2 exceptions: Firstly, as described above, the script does not consider the 9 "module set" modules, and thus misses them. Secondly, KEGG appears to make a mistake in interpreting non-essential genes in M0009 and M00011, which the script does not replicate. 
 
+The results of the pathway and BRITE results scripts have not been extensively tested. However, these are computationally far more simple to acquire, making mistakes less likely. 
+
 # Contents
 ## Slurm_scripts
 Contains the ready-made .sh scripts used for slurm job submission on OIST Deigo. By writing the paths of your input into these scripts, you can directly run the pipeline on Deigo
