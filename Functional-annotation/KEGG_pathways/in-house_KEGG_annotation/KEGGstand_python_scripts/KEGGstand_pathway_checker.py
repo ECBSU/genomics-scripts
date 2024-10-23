@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 """
 Parses the K number from an Eggnog .annotation file. Uses a database of KEGG k term entries to both
@@ -54,6 +55,7 @@ def parse_KEGG_kterm_db(k_term_db):
     entry = False
     read = False
     temp_list = []
+    k_term_temp_list = []
     #Iterate over each line in the database
     for line in gen_line_reader(k_term_db):
         #Parse out the K term from the entry line
@@ -63,21 +65,39 @@ def parse_KEGG_kterm_db(k_term_db):
             if temp_list != []:
                 hierarchy_list.append(temp_list)
                 temp_list = []
+                k_term_temp_list = []
         #Only read once the read variable is true, which happens only in the BRITE section
         if read:
             #Ignore the lines that starts with the entry itself
             if line.strip().startswith(entry):
                 continue
+            leading_spaces = leading_space_counter(line)
+            KEGG_cat = line.strip()
+            #Enzyme category has the fewest leading spaces, making it seem like an all-encompassing category during parsing. 
+            #This can be resolved by adding an additional leading space
+            if line.strip().startswith("0"):
+                leading_spaces = leading_spaces - 1
             #Per entry, create a list of tuples (temp_list) that is added to the "hierarchy_list". Each tuple
             #will be (number of leading spaces, KEGG category). This information will be used downstream
             #to reconstruct the KEGG hierarchy
-            temp_list.append((leading_space_counter(line), line.strip()))
-            #Each line in the BRITE section represents a KEGG category, and it will be stored as a key the KEGG 
-            #dictionary (K_term_dict). The values are lists of all the k terms found to belong to each category
-            if line.strip() not in K_term_dict:
-                K_term_dict[line.strip()] = [entry]
+            temp_list.append((leading_spaces, line.strip()))
+            #maintain a list of previous overarching categories so that kterms will be stored in the dictionary accounting for 
+            #category hierarchy. This is necessary for categories with identical names, but different hierarchies. (eg small subunit in eukaryote and prokaryote ribosomes)
+            new_list = k_term_temp_list[:]
+            for cat in k_term_temp_list:
+                if leading_spaces <= cat[0]:
+                    new_list.remove(cat)
+            k_term_temp_list = new_list[:]
+            #Add the current item to the previous cat list
+            k_term_temp_list.append((leading_spaces, KEGG_cat))
+            #Make a temp list of the previous and current category, used to find the corresponding kterms from the dictionary
+            new_list = []
+            for cat in k_term_temp_list:
+                new_list.append(cat[1])
+            if tuple(new_list) not in K_term_dict:
+                K_term_dict[tuple(new_list)] = [entry]
             else:
-                K_term_dict[line.strip()].append(entry)
+                K_term_dict[tuple(new_list)].append(entry)
         if line.startswith("BRITE"):
             read = True
     
@@ -85,9 +105,10 @@ def parse_KEGG_kterm_db(k_term_db):
         hierarchy_list.append(temp_list)
     return K_term_dict, hierarchy_list
 
+
 def branching_dict_helper(in_dict, in_list):
     """
-    Helper function to create a branching dictionary. 
+    Helper function to create an empty branching dictionary, used to store branching hierarchy. 
     
     Note:
     I am aware there exist more elegant recursive solutions. However, I do not fully understand their logic,
@@ -216,11 +237,27 @@ def output_hierarchical_gene_count(hierarchy_dict, K_term_dict, K_term_present, 
     #Iterate over this ordered list of categories, checking the associated genes,
     #and whether these genes are present in the provided EggNOG output. Then write 
     #this per category
+    previous_cats = []
     for item in hierarchical_tup_list:
         leading_spaces = item[0]
         KEGG_cat = item[1]
         leading_spaces = leading_spaces - 12
-        associated_kterms = K_term_dict[KEGG_cat]
+        #Keep track of previous categories to be able to call the kterm dict in an hierarchical fashion.
+        #This is critical, since otherwise categories with identical names but different hierarchy (eg small subunit in eukaryote and prokaryote ribosomes)
+        #will be counted as the same. 
+        #First remove any category in the previous category list that is not an overarching category
+        new_list = previous_cats[:]
+        for cat in previous_cats:
+            if leading_spaces <= cat[0]:
+                new_list.remove(cat)
+        previous_cats = new_list[:]
+        #Add the current item to the previous cat list
+        previous_cats.append((leading_spaces, KEGG_cat))
+        #Make a temp list of the previous and current category, used to find the corresponding kterms from the dictionary
+        temp_list = []
+        for cat in previous_cats:
+            temp_list.append(cat[1])
+        associated_kterms = K_term_dict[tuple(temp_list)]
         associated_kterms_present = []
         for kterm in associated_kterms:
             if kterm in K_term_present:
