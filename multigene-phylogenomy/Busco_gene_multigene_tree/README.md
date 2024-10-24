@@ -46,16 +46,4 @@ Iqtree output:
 For each fraction, iqtree output is generated. The .treefile can be visualized into a phylogenetic tree using figtree or other software. Since the pipeline doesnt specify a model, it makes iqtree run
 its modelfinder function. To find the optimal model iqtree found, check the .log file. 
 
-## Notes on tool use
-For now, the tool commands are hardcoded in the python script. Please let me know if you would like a version with altered commands.
-
-MAFFT is run using the following command:
-mafft --globalpair --maxiterate 1000 --thread 64 input > output
-
-Trimal is run using the command:
-/home/a/arno-hagenbeek/trimal/trimal/source/trimal -in input -out output -automated1
-
-Iqtree is run using the command:
-iqtree2 -s input --prefix output -bb 1000 -T 64
-
 
