@@ -52,6 +52,7 @@ echo "-----------------------------------------------"
 
 #Run barrnap on all bins, set to bacteria, archea, and eukaryotes
 mkdir ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}_barrnap
+cd ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}/
 bins=*.fa
 for i in ${bins}; do barrnap ${i} --kingdom bac --outseq ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}_barrnap/${i}_bac.fasta; done
 for i in ${bins}; do barrnap ${i} --kingdom arc --outseq ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}_barrnap/${i}_arc.fasta; done
