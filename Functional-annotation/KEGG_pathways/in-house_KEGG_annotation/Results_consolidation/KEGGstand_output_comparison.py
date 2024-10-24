@@ -1,15 +1,6 @@
 #!/usr/bin/env python3
 """
-Parses the K number from an Eggnog .annotation file. Uses a database of KEGG k term entries to both
-find to which (sub)category each k term belongs, and to reconstruct the KEGG hierarchy of nested
-categories. Then per (sub)category checks which k terms are present based on the EggNOG output.
-
-Usage: (python) KEGGstand_category_gene_presence.py input.emapper.annotations output_file KEGG_k_term_database
-
-Output:
-Writes a tab-delimited file that lists each KEGG category along with its subcategories. After
-a tab, the number of genes found for the (sub)category is given, along with the total number of
-genes known for this category. 
+Finds the KEGGstand pipeline outputs, and merges them into a single tab-delimited text file.
 """
 
 ###################
