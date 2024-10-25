@@ -416,7 +416,8 @@ def pathway_completion_checker(KEGG_dict, kterms_list):
 if __name__ == "__main__":
     #Obtain inputs
     eggnog_input = sys.argv[1]
-    KEGG_db = sys.argv[2]
+    outprefix= sys.argv[2]
+    KEGG_db = sys.argv[3]
     #Read in the KEGG module DB
     KEGG_dict = KEGG_module_reader(KEGG_db)
     #Parse out the K terms from eggnog output_name
@@ -424,5 +425,5 @@ if __name__ == "__main__":
     #Check per pathway how complete it is based on the eggnog K terms
     completion_dict = pathway_completion_checker(KEGG_dict, kterms_list)
     #Output the found completion
-    output_tsv(eggnog_input + "_KEGG_completion.tsv",completion_dict, 0)
-    output_tsv(eggnog_input + "_KEGG_complete_modules.tsv",completion_dict, 1)
+    output_tsv(outprefix + "_KEGG_completion.tsv",completion_dict, 0)
+    output_tsv(outprefix + "_KEGG_complete_modules.tsv",completion_dict, 1)
