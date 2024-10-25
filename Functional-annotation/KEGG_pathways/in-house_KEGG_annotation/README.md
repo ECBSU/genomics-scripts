@@ -18,11 +18,14 @@ The results of the pathway and BRITE results scripts have not been extensively t
 The complete pipeline is relatively lightweight, essentially taking the same resources as a regular EggNOG search. EggNOG (set to mmseq2 by default in the pipeline) can process approximately 4 megabases per hour at 32 cores. Comparatively, computation time for the KEGGstand scripts is negligible. The module completion calculation takes 5-8 seconds per sample, and reconstructing the KEGG hierarchy and assigning k-terms takes 2-4 seconds per sample. 
 
 # Contents
-## Slurm_scripts
-Contains the ready-made .sh scripts used for slurm job submission on OIST Deigo. By writing the paths of your input into these scripts, you can directly run the pipeline on Deigo
-
-## KEGGstand_python_scripts
-The python scripts responsible for the KEGGstand functionality. Are also present on OIST /Bucket, from which they are usually called. Included here for completion's sake.
-
 ## Database_generation
 The python scripts responsible for generating the data files used by the pipeline. Made databases are already present on OIST /Bucket, and the scripts are only included here for the sake of completion
+
+## KEGGstand_python_scripts
+The python scripts that run the KEGG module completion calculation and BRITE gene counts. 
+
+## Results_consolidation
+A python script for merging multiple outputs when running the KEGGstand scripts on multiple fasta files.
+
+## Slurm_scripts
+Contains the ready-made .sh scripts used for slurm job submission on OIST Deigo. By writing the paths of your input into these scripts, you can directly run the pipeline on Deigo.
