@@ -3,6 +3,7 @@ Remember to change Line 10 your nex file
 
 Example of settings (from Filip and Petra)
 
+```
 begin mrbayes;
 log start;
 prset aamodelpr=fixed(lg) statefreqpr=fixed(empirical);
@@ -13,3 +14,4 @@ nchains=4 savebrlens=yes;
 mcmc; sumt;
 log stop;
 end;
+```
