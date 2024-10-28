@@ -34,7 +34,7 @@ def find_processed_entries(file):
     """
     entry_list = []
     for line in gen_line_reader(file):
-        if line.startswith("ENTRY"):
+        if line.startswith("Module:"):
             entry_list.append(line.split()[1])
     return entry_list
     
@@ -64,12 +64,13 @@ if __name__ == "__main__":
     if os.path.isfile(out_file):
         for mod in find_processed_entries(out_file):
             if mod in module_list:
-                module_list.remove(term)
+                module_list.remove(mod)
             else:
                 print("error, found processed module that is not in list: {}".format(term))
                 
     #For any undownloaded terms, download them and append them to the database
     for mod in module_list:
+        print(mod)
         written = False
         while not written:
             #Here "try" is used because KEGG will sometimes refuse connection, causing an error.
@@ -78,16 +79,24 @@ if __name__ == "__main__":
             try:
                 #obtain the KEGG entry and only write the part up to and including the BRITE hierarchy
                 entry = REST.kegg_get(mod, option=None)
-                name = ""
-                defin = ""
+                defin = False
+                clss = False
                 out = open(out_file, "a")
                 for i in entry:
                     #Extract only the name and definition from the module entry
                     if i.startswith("NAME"):
-                        name = i.partition(" ")[2].strip()
+                        out.write("Module: {} {}\n".format(mod, i.partition(" ")[2].strip()))
                     if i.startswith("DEFINITION"):
-                        defin = i.partition(" ")[2].strip()
-                out.write("{} {}\n{}\n".format(mod, name, defin)) 
+                        defin = True
+                    if i.startswith("CLASS"):
+                        clss = True
+                    if i.startswith("PATHWAY") or i.startswith("REACTION") or i.startswith("COMPOUND") or i.startswith("ORTHOLOGY") or i.startswith("REFERENCE"):
+                        defin = False
+                        clss = False
+                    if defin:
+                        out.write("Definition: {}\n".format(i.strip("DEFINITION").strip()))
+                    if clss:
+                        out.write("Class: {}\n".format(i.strip("CLASS").strip()))
                 written = True
             except:
                 tries += 1
