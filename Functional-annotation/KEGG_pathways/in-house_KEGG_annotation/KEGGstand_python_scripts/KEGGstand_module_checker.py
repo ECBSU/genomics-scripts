@@ -39,12 +39,12 @@ def KEGG_module_reader(KEGG_module_file_path):
             continue
         if not line.strip():
             continue
-        if line.startswith("M00"):
-            name = line.strip()
+        if line.startswith("Module: "):
+            name = line.strip("Module: ").strip()
             if name not in KEGG_dict:
                 KEGG_dict[name] = []
-        else:
-            KEGG_dict[name].append(line.strip())
+        if line.startswith("Definition: "):
+            KEGG_dict[name].append(line.strip("Definition: ").strip())
     return KEGG_dict
 
 def output_tsv(outputname, output_dict, minimum_completion):
