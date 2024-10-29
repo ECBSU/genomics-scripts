@@ -7,8 +7,8 @@ The scripts are highly similar, but due to their different outputs can take slig
 
 ### KEGGstand_tsv_maker.py
 #### Mandatory
-* __-i *path/to/dir/*__: Path to the directory containing KEGGstand output.
-* __-o *prefix*__: Path/name of the output prefix. The script will add ".tsv" and/or "_BRITE.tsv" after this prefix.
+* __--input_dir *path/to/dir/*__: Path to the directory containing KEGGstand output.
+* __--output *prefix*__: Path/name of the output prefix. The script will add ".tsv" and/or "_BRITE.tsv" after this prefix.
   
 #### Optional
 * __--completion *number*__: Desired completion values, used to avoid outputting uninformative modules. By default will only consider modules where the lowest completion found for any sample is above or equal to the specified completion.
@@ -31,8 +31,9 @@ __IMPORTANT:__ The KEGGstand_graph_maker.py script requires the seaborn package 
 conda activate /bucket/HusnikU/Conda-envs/genovi
 ```
 #### Mandatory
-* __-i *path/to/dir/*__: Path to the directory containing KEGGstand output.
-* __-o *outputname*__: Path/name of the output heatmap. __The extension used here will affect the format of the heatmap__. Supported formats are pdf, png, ps, eps, and svg. Default is .png. 
+* __--input_dir *path/to/dir/*__: Path to the directory containing KEGGstand output. ALTERNATIVELY, can use --input_files argument. 
+* __--input_files *comma_delimited_list*__: Comma-delimited list of KEGGstand output files. If given this list, the samples will not be clustered in the heatmap, but will follow the order of the provided file list. 
+* __--output *outputname*__: Path/name of the output heatmap. __The extension used here will affect the format of the heatmap__. Supported formats are pdf, png, ps, eps, and svg. Default is .png. 
 #### Optional
 * __--completion *number*__: Desired completion values, used to avoid outputting uninformative modules. By default will only consider modules where the lowest completion found for any sample is above or equal to the specified completion.
 * __--filter_method *method*__: Changes the calculation of the desired completion values. Options are "min", "max", and "avg". "min" is the default behaviour, requiring the lowest completion to be above or equal to the desired completion. "max" specifies the inverse, with the highest value needing to be equal or higher. "avg" specifies that the average module completion needs to be higher or equal to the specified completion
