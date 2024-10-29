@@ -44,24 +44,37 @@ The scripts are highly similar, but due to their different outputs can take slig
 * __--dimensions *number,number*__: Desired dimensions of the created plot in inches. First value is height, the second is width.
 * __--color *color_scheme*__: Desired colorscheme of the heatmap. Default is "coolwarm". Check here for options: https://www.practicalpythonfordatascience.com/ap_seaborn_palette
 
+## Output
+Tsv_maker will make a tab-delimited text file (or two if KEGG_cat is specified). The first line is a header line (preceded with # to allow for removal). The first column lists the modules or BRITE/pathway categories. 
+All other columns represent module completion or BRITE gene counts per input fasta. 
+
+Graph_maker will make a heatmap in the desired image file format. 
+
+## Notes on collapsing modules into categories
+Please be aware that collapsing the modules into their overarching categories occurs AFTER any module filtering. In other words, the values calculated for the categories will be affected by any module filtering steps. If you removed any modules below an average of 0.5 completion, these modules will be absent when calculating the averages of their overarching categories. This was done so uninteresting modules can be removed. To keep track of how filtering is affecting the modules underlying the categories, use the "--show_module_count" flag. 
 
 ### Examples:
 Default run to generate an output containing the module completions of every fasta processed in the KEGGstand output:
 ```
-python KEGGstand_output_comparison.py -i /random_folder/my_favorite_fastas_KEGGstand_output/ -o /output_folder/my_favorite_prefix
+python KEGGstand_tsv_maker.py -i /random_folder/my_favorite_fastas_KEGGstand_output/ -o /output_folder/my_favorite_prefix
 ``` 
 Same run, but only including modules that are complete in at least one fasta:
 ```
-python KEGGstand_output_comparison.py -i /random_folder/my_favorite_fastas_KEGGstand_output/ -o /output_folder/my_favorite_prefix --minimum 1
+python  KEGGstand_tsv_maker.py -i /random_folder/my_favorite_fastas_KEGGstand_output/ -o /output_folder/my_favorite_prefix --completion 1
 ```
 A run where only modules that are on average 0.5 complete are considered:
 ```
-python KEGGstand_output_comparison.py -i /random_folder/my_favorite_fastas_KEGGstand_output/ -o /output_folder/my_favorite_prefix --minimum 0.5 --average
+python KEGGstand_tsv_maker.py -i /random_folder/my_favorite_fastas_KEGGstand_output/ -o /output_folder/my_favorite_prefix --completion 0.5 --filter_method avg
 ```
 A run where the default module output is generated, and gene counts for the bacterial motility BRITE category and all its subcategories are given:
 ```
-python KEGGstand_output_comparison.py -i /random_folder/my_favorite_fastas_KEGGstand_output/ -o /output_folder/my_favorite_prefix -KEGG_cat "Bacterial motility proteins [BR:ko02035]"
+python KEGGstand_tsv_maker.py -i /random_folder/my_favorite_fastas_KEGGstand_output/ -o /output_folder/my_favorite_prefix -KEGG_cat "Bacterial motility proteins [BR:ko02035]"
 ```
-## Output
-Outputs a tab-delimited text file (or two if KEGG_cat is specified). The first line is a header line (preceded with # to allow for removal). The first column lists the modules or BRITE/pathway categories. 
-All other columns represent module completion or BRITE gene counts per input fasta. 
+A run for generating a heatmap of the samples, containing completion values for all modules. 
+```
+python KEGGstand_graph_maker.py -i /random_folder/my_favorite_fastas_KEGGstand_output/ -o /output_folder/heatmap.pdf
+```
+A run for generating a heatmap, considering only modulesthat are above 0.5 completion in every sample, collapsing them into their broadest categories, and removing the categories including the word Xenobiotics. 
+```
+python KEGGstand_graph_maker.py -i /random_folder/my_favorite_fastas_KEGGstand_output/ -o /output_folder/heatmap.pdf --collapse 1 --completion 0.5 --db Scripts/KEGG_module_db --filter_method min --show_module_count --category_filter Xenobiotics
+```
