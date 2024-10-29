@@ -26,7 +26,7 @@ The scripts are highly similar, but due to their different outputs can take slig
   Can alternatively specify a comma-delimited list of categories, or input "ALL", to output every single category. *Put the categories within quotation marks, otherwise python will only consider the first word*
 
 ### KEGGstand_graph_maker.py
-__IMPORTANT:__ The graphmaker scripts requires the seaborn package and its dependencies. If used on Deigo, the easiest way to acquire these is to activate a conda environment with these packages present. I have been using 
+__IMPORTANT:__ The KEGGstand_graph_maker.py script requires the seaborn package and its dependencies. If used on Deigo, the easiest way to acquire these is to activate a conda environment with these packages present. I have been using: 
 ```
 conda activate /bucket/HusnikU/Conda-envs/genovi
 ```
