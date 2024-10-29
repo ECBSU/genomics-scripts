@@ -1,4 +1,4 @@
-# Python script that consolidates the KEGGstand pipeline output of multiple fastas into a single file
+# Python scripts that automate the processing of KEGGstand pipeline output
 ## Info
 These scripts are used to merge the KEGGstand output of multiple samples. These can be merged into a single .tsv file for downstream processing, or immediately visualized as a heatmap.
 
