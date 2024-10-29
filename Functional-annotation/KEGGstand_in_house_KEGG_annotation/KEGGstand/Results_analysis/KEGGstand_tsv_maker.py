@@ -254,13 +254,13 @@ def BRITE_output(brite_dict, out_file):
 #MAIN
 ####################################################################    
 if __name__ == "__main__":
-    if "-i" in sys.argv:
-        indir = sys.argv[sys.argv.index("-i") + 1]
+    if "--in_dir" in sys.argv:
+        indir = sys.argv[sys.argv.index("--in_dir") + 1]
     else:
         print("No input specified, specify input directory with '-i'")
         sys.exit()
-    if "-o" in sys.argv:
-        out_prefix = sys.argv[sys.argv.index("-o") + 1]
+    if "--output" in sys.argv:
+        out_prefix = sys.argv[sys.argv.index("--output") + 1]
     else:
         out_prefix = "KEGGstand_merged"
     #Initiate and check optional variables
