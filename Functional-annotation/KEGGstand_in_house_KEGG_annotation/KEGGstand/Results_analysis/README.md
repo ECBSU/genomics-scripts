@@ -15,9 +15,35 @@ The scripts are highly similar, but due to their different outputs can take slig
 * __--filter_method *method*__: Changes the calculation of the desired completion values. Options are "min", "max", and "avg". "min" is the default behaviour, requiring the lowest completion to be above or equal to the desired completion. "max" specifies the inverse, with the highest value needing to be equal or higher. "avg" specifies that the average module completion needs to be higher or equal to the specified completion
 * __--module_search *string*__: Specifies a string that needs to be PRESENT in the module name. Modules WITHOUT this string are not considered. Can give multiple strings by delimiting with a comma. If spaces are included the string should be within quotation marks
 * __--module_filter *string*__: Specifies a string that needs to be ABSENT in the module name. Modules WITH this string are not considered.  Can give multiple strings by delimiting with a comma. If spaces are included the string should be within quotation marks
-* __--collapse *number*__: Specifies that the modules are instead listed by overarching categories (eg rather than showing the Citrate cycle and Pentose phosphate pathway completions as separate, their results are combined into a Central carbohydrate metabolism category)
+* __--collapse *number*__: Specifies that the modules are instead to be listed by their overarching categories (eg rather than showing the Citrate cycle and Pentose phosphate pathway completions as separate, their results are combined into a Central carbohydrate metabolism category). The number represents the level of detail for the categories. 1 is the broadest categories (eg energy metabolism), 2 is slightly more specific categories (eg methane metabolism). *If this is specified, --db needs to be specified as well.*
+* __--db *path/to/module/database*__: Path to the module database used to generate the results. Used to find the categories to which the modules belong. (/bucket/HusnikU/Unit_Members/Arno/Scripts/KEGG_module_db on Deigo)
+* __--collapse_method *method*__: Specifies the value to be given for the collapsed categories. Default is the average completion of the contained modules (avg). Alternatives are "min" (lowest value) and "max" (highest value) 
+* __--category_search *string*__: Functions like the --module_search argument, but instead of only considering modules with the specified string, will only consider categories with the specified string.
+* __--category_filter *string*__: Functions like the --module_filter argument, but instead of disregarding modules with the specified string, will disregard the categories with the specified string.
+* __--show_module_count__: Specifies that the number of contained modules are to be listed in the name of the categories. Only does anything if --collapse is given.
+#### TSV_maker only
 * __--KEGG_cat *"category"*__: If specified, will output KEGG BRITE or pathway categories gene counts. Will give a tab-delimited output of gene counts per fasta for the specified category, and all its subcategories.
-  Can alternatively specify a comma-delimited list of categories, or input "ALL", to output every single category. __Important: Put the categories within quotation marks, otherwise python will only consider the first word__
+  Can alternatively specify a comma-delimited list of categories, or input "ALL", to output every single category. *Put the categories within quotation marks, otherwise python will only consider the first word*
+
+### KEGGstand_graph_maker.py
+#### Mandatory
+* __-i *path/to/dir/*__: Path to the directory containing KEGGstand output.
+* __-o *outputname*__: Path/name of the output heatmap. __The extension used here will affect the format of the heatmap__. Supported formats are pdf, png, ps, eps, and svg. Default is .png. 
+#### Optional
+* __--completion *number*__: Desired completion values, used to avoid outputting uninformative modules. By default will only consider modules where at least 1 sample is above this required completion.
+* __--filter_method *method*__: Changes the calculation of the desired completion values. Options are "min", "max", and "avg". "min" is the default behaviour, requiring the lowest completion to be above or equal to the desired completion. "max" specifies the inverse, with the highest value needing to be equal or higher. "avg" specifies that the average module completion needs to be higher or equal to the specified completion
+* __--module_search *string*__: Specifies a string that needs to be PRESENT in the module name. Modules WITHOUT this string are not considered. Can give multiple strings by delimiting with a comma. If spaces are included the string should be within quotation marks
+* __--module_filter *string*__: Specifies a string that needs to be ABSENT in the module name. Modules WITH this string are not considered.  Can give multiple strings by delimiting with a comma. If spaces are included the string should be within quotation marks
+* __--collapse *number*__: Specifies that the modules are instead to be listed by their overarching categories (eg rather than showing the Citrate cycle and Pentose phosphate pathway completions as separate, their results are combined into a Central carbohydrate metabolism category). The number represents the level of detail for the categories. 1 is the broadest categories (eg energy metabolism), 2 is slightly more specific categories (eg methane metabolism). *If this is specified, --db needs to be specified as well.*
+* __--db *path/to/module/database*__: Path to the module database used to generate the results. Used to find the categories to which the modules belong. (/bucket/HusnikU/Unit_Members/Arno/Scripts/KEGG_module_db on Deigo)
+* __--collapse_method *method*__: Specifies the value to be given for the collapsed categories. Default is the average completion of the contained modules (avg). Alternatives are "min" (lowest value) and "max" (highest value) 
+* __--category_search *string*__: Functions like the --module_search argument, but instead of only considering modules with the specified string, will only consider categories with the specified string.
+* __--category_filter *string*__: Functions like the --module_filter argument, but instead of disregarding modules with the specified string, will disregard the categories with the specified string.
+* __--show_module_count__: Specifies that the number of contained modules are to be listed in the name of the categories. Only does anything if --collapse is given.
+#### Graph_maker only
+* __--dimensions *number,number*__: Desired dimensions of the created plot in inches. First value is height, the second is width.
+* __--color *color_scheme*__: Desired colorscheme of the heatmap. Default is "coolwarm". Check here for options: https://www.practicalpythonfordatascience.com/ap_seaborn_palette
+
 
 ### Examples:
 Default run to generate an output containing the module completions of every fasta processed in the KEGGstand output:
