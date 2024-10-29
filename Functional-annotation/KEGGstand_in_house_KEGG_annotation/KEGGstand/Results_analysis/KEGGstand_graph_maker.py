@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 """
-Processes and merges all the KEGGstand output in the provided directory, and gives them as a single output file
-for downstream analyses or visualization
+Processes and merges all the KEGGstand output in the provided directory, and gives visualizes them as a heatmap
 
-Usage: (python) KEGGstand_tsv_maker.py -i /directory/of/KEGGstand/output -o output_prefix [arguments]
+Usage: (python) KEGGstand_tsv_maker.py -i /directory/of/KEGGstand/output -o plot_name.extension [arguments]
 
 Output:
-Tab-delimited file where module completion is shown per sample, for each sample in the provided directory
+Image file of the specified heatmap
 """
 
 ###################
@@ -28,20 +27,6 @@ def gen_line_reader(file_path):
         yield line
 
 
-def leading_dash_counter(string):
-    """
-    Counts the number of leading dashes in the string. Returns
-    this number as a integer
-    """
-    dash = 0
-    for char in string:
-        if char == "-":
-            dash += 1
-        else:
-            break
-    return dash
-
-
 def completion_tsv_reader(filepath):
     """
     Parser function for reading the completion values in the KEGGstand pipeline output.
@@ -55,41 +40,6 @@ def completion_tsv_reader(filepath):
         KEGG_name = "{} {}".format(line.split("\t")[0], line.split("\t")[1])
         completion = float(line.split("\t")[2])
         out_dict[KEGG_name] = completion
-    return out_dict
-
-
-def BRITE_output_parser(file_path, BRITE_list, allbrite):
-    """
-    Parser function for reading the BRITE/pathway gene counts given in the KEGGstand pipeline output.
-    Returns a dictionary where the pathway is the key, and the value is a string:
-    "genes_found/total_genes", which will be parsed in the output function
-    """
-    out_dict = {}
-    # Check if allbrite was given (this means every category will be returned)
-    # If not, only return the categories in the BRITE_list
-    if not allbrite:
-        # To determine which categories are subcategories of interest, keep track of the leading dashes
-        cat_leading_dash = 100
-        # Initiate a variable that shows that we are processing a subcategory
-        in_cat = False
-        for line in gen_line_reader(file_path):
-            # If there are fewer or equal leading dashes as the categories of interest,
-            # then we are not in a subcategory, and the line will be ignored
-            if leading_dash_counter(line) <= cat_leading_dash:
-                in_cat = False
-            # If the line contains a category of interest, the category will be stored. Furthermore,
-            # every next line, UNTIL there are fewer or equal dashes, is a subcategory, which will
-            # also be processed using the in_cat variable.
-            if line.split("\t")[0].strip("-").strip() in BRITE_list:
-                out_dict[line.split("\t")[0]] = line.split("\t")[1].strip()
-                cat_leading_dash = leading_dash_counter(line)
-                in_cat = True
-            if in_cat:
-                out_dict[line.split("\t")[0]] = line.split("\t")[1].strip()
-    # If allbrite is given, simply output every single category
-    else:
-        for line in gen_line_reader(file_path):
-            out_dict[line.split("\t")[0]] = line.split("\t")[1]
     return out_dict
 
 def remove_modules_below_completion(module_dict, minimum_completion, method = "avg"):
@@ -156,29 +106,29 @@ def retain_only_specified_modules(module_dict, search_string_list, filter_string
     else:
         out_dict = temp_dict
     return out_dict
-
-def module_output(module_dict, out_file):
+    
+def KEGG_module_reader(KEGG_module_file_path):
     """
-    Output function to write the contents of the module dictionary to a tab-delimited text file.
+    Reads a database of KEGG module definitions and outputs a dictionary
+    where the key is "Modulenumber Modulename" and the value is the definition.
+    
+    Since some modules have multiple definitions, the value is given as a list.
     """
-    out = open(out_file, "w")
-
-    # Write header line
-    out.write("#Module\t")
-    for org in module_dict:
-        out.write(org + "\t")
-    out.write("\n")
-    # Write per module completions for modules
-    # First iterate over the modules by grabbing the first organism, and iterating over the keys
-    # of its nested dictionary, after which the loop is broken
-    for x in module_dict:
-        for module in module_dict[x]:
-            out.write(module + "\t")
-            for org in module_dict:
-                out.write(str(module_dict[org][module])+ "\t")
-            out.write("\n")
-        break
-
+    KEGG_dict = {}
+    name = False
+    for line in gen_line_reader(KEGG_module_file_path):
+        if line.startswith("#"):
+            continue
+        if not line.strip():
+            continue
+        if line.startswith("Module: "):
+            name = line.strip("Module: ").strip()
+            if name not in KEGG_dict:
+                KEGG_dict[name] = []
+        if line.startswith("Definition: "):
+            KEGG_dict[name].append(line.strip("Definition: ").strip())
+    return KEGG_dict    
+    
 def category_collapser(module_dict, module_db_path, level, method, show_module_count):
     """
     'Collapses' the modules into their overarching categories. Requires the module database. Level 
@@ -224,57 +174,59 @@ def category_collapser(module_dict, module_db_path, level, method, show_module_c
             if method == "max":
                 out_dict[org][clss] = max(out_dict[org][clss])
     return out_dict
-
-def BRITE_output(brite_dict, out_file):
-    """
-    Output function to write the contents of the BRITE dictionary to a tab-delimited text file
-    """
-    out = open(out_file, "w")
-    # Write header line
-    out.write("#Module\t")
-    for org in brite_dict:
-        out.write(org + "\t")
-    out.write("\n")
-    # Write per category gene count. Write total genes known behind the category
-    for x in brite_dict:
-        for cat in brite_dict[x]:
-            total_genes = brite_dict[x][cat].split("/")[1]
-            out.write(cat + " ({} genes)\t".format(total_genes))
-            for org in brite_dict:
-                if cat in brite_dict[org]:
-                    out.write(str(brite_dict[org][cat].split("/")[0]) + "\t")
-                else:
-                    out.write("0" + "\t")
-            out.write("\n")
-        break
-        
+                
+def heatmap(data_dict, outname, height, width, color, outformat):
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    import pandas as pd
+    import scipy
+    
+    df = pd.DataFrame(data_dict)
+    ax = sns.clustermap(df, metric="euclidean", method="single", cmap= color, figsize=(float(width), float(height)), linewidths=0.5, linecolor='white', col_cluster = False)
+    ax.fig.subplots_adjust(left=0.1)
+    ax.fig.subplots_adjust(bottom=0.25)
+    ax.ax_cbar.set_position((0.02, 0.6, 0.03, 0.2))
+    plt.savefig(outname, format = outformat)     
             
 
 ####################################################################
 #MAIN
 ####################################################################    
 if __name__ == "__main__":
+    #Acquire and handle input
+    #########################
     if "--in_dir" in sys.argv:
         indir = sys.argv[sys.argv.index("--in_dir") + 1]
+    elif "--in_files" in sys.argv:
+        files = sys.argv[sys.argv.index("--in_files") + 1].split(",")
     else:
         print("No input specified, specify input directory with '-i'")
         sys.exit()
     if "--output" in sys.argv:
-        out_prefix = sys.argv[sys.argv.index("--output") + 1]
+        graphname = sys.argv[sys.argv.index("--output") + 1]
+        if "." in graphname:
+            outformat = graphname.split(".")[1].strip()
+            if outformat != "png" and outformat != "pdf" and outformat != "ps" and outformat != "eps" and outformat != "svg":
+                print("{} is an unrecognized output format, will default to .png format".format(outformat))
+        else:
+            print("No extension in the outputname, will default to .png format")
     else:
-        out_prefix = "KEGGstand_merged"
+        graphname = "KEGGstand_heatmap.png"
+        outformat = "png"
     #Initiate and check optional variables
     minimum_completion = 0
     filter_method = "min"
     collapse_method = "avg"
+    height = 10
+    width = 10
+    color = "coolwarm"
     search_string_list = []
     filter_string_list = []
     cat_search_string_list = []
     cat_filter_string_list = []
     collapse_level = 0
     db_path = ""
-    all_BRITE = False
-    BRITE_list = []
     show_module_count = False
     if "--completion" in sys.argv:
         minimum_completion = float(sys.argv[sys.argv.index("--completion") + 1])
@@ -288,6 +240,8 @@ if __name__ == "__main__":
         if collapse_method != "avg" and collapse_method != "min" and collapse_method != "max":
             print('Error, specified method needs to be "min","max", or "avg". {} was not recognized.'.format(collapse_method))
             exit()
+    if "--dimensions" in sys.argv:
+        height,width = sys.argv[sys.argv.index("--dimensions") + 1].split(",")
     if "--module_search" in sys.argv:
         if "," in sys.argv[sys.argv.index("--module_search") + 1]:
             search_string_list = sys.argv[sys.argv.index("--module_search") + 1].split(",")
@@ -307,7 +261,9 @@ if __name__ == "__main__":
         if "," in sys.argv[sys.argv.index("--category_filter") + 1]:
             cat_filter_string_list = sys.argv[sys.argv.index("--category_filter") + 1].split(",")
         else:
-            cat_filter_string_list = [sys.argv[sys.argv.index("--category_filter") + 1]]      
+            cat_filter_string_list = [sys.argv[sys.argv.index("--category_filter") + 1]]
+    if "--color" in sys.argv:
+        color = sys.argv[sys.argv.index("--color") + 1]         
     if "--db" in sys.argv:
         db_path = sys.argv[sys.argv.index("--db") + 1]   
     if "--collapse" in sys.argv:
@@ -320,45 +276,37 @@ if __name__ == "__main__":
         exit()
     if "--show_module_count" in sys.argv:
         show_module_count = True
-    if "--KEGG_cat" in sys.argv:
-        KEGG_cat = sys.argv[sys.argv.index("--KEGG_cat") + 1]
-        if KEGG_cat == "ALL":
-            all_BRITE = True
-        elif "," in KEGG_cat:
-            for i in KEGG_cat.split(","):
-                BRITE_list.append(i.strip())   
-        else:
-            BRITE_list = [KEGG_cat]
-                
-    #Initiate variables
+        
+    #######################################
     module_dict = {}
-    BRITE_dict = {}
-    #Iterate over the files in the input directory            
-    for root, dirs, files in os.walk(indir): 
+    #Iterate over the files in the input directory or read the specified files         
+    if "--in_dir" in sys.argv:
+        for root, dirs, files in os.walk(indir): 
+            for file in files: 
+                #Obtain the completion value per module per fasta
+                if file.endswith(".emapper.annotations_KEGG_completion.tsv"):
+                    org_name = file.partition(".emapper")[0]
+                    modules = completion_tsv_reader(os.path.join(root, file))
+                    module_dict[org_name] = modules
+    else:
         for file in files: 
             #Obtain the completion value per module per fasta
             if file.endswith(".emapper.annotations_KEGG_completion.tsv"):
-                org_name = file.partition(".emapper")[0]
-                modules = completion_tsv_reader(os.path.join(root, file))
+                org_name = file.partition(".emapper")[0].rpartition("/")[2]
+                modules = completion_tsv_reader(file)
                 module_dict[org_name] = modules
-            #Only read the BRITE and pathway output if required
-            if all_BRITE or len(BRITE_list) > 0:
-                if file.endswith(".emapper.annotations_pathway_and_BRITE"):
-                    org_name = file.partition(".emapper")[0]
-                    BRITE_dict[org_name] = BRITE_output_parser(os.path.join(root, file), BRITE_list, all_BRITE)
-    
-    #Remove any modules based on completion requirements
+
+
+    #Remove any modules that dont meet the completion requirements
     if minimum_completion > 0 or filter_method != "min":
         module_dict = remove_modules_below_completion(module_dict, minimum_completion, filter_method) 
     #Remove modules based on string searches
     if search_string_list != [] or filter_string_list != []:
         module_dict = retain_only_specified_modules(module_dict, search_string_list, filter_string_list)
+    #Collapse modules into categories
     if collapse_level != 0:
         module_dict = category_collapser(module_dict, db_path, collapse_level, collapse_method, show_module_count)
         #Remove categories based on string searches
         if cat_filter_string_list != [] or cat_search_string_list != []:
-            module_dict = retain_only_specified_modules(module_dict, cat_search_string_list, cat_filter_string_list)   
-    #Write output
-    module_output(module_dict, out_prefix + ".tsv")       
-    if all_BRITE or len(BRITE_list) > 0:
-        BRITE_output(BRITE_dict, out_prefix + "_BRITE.tsv")
+            module_dict = retain_only_specified_modules(module_dict, cat_search_string_list, cat_filter_string_list)
+    heatmap(module_dict, graphname, height, width, color, outformat)
