@@ -53,7 +53,7 @@ Graph_maker will make a heatmap in the desired image file format.
 ## Notes on collapsing modules into categories
 Please be aware that collapsing the modules into their overarching categories occurs AFTER any module filtering. In other words, the values calculated for the categories will be affected by any module filtering steps. If you removed any modules below an average of 0.5 completion, these modules will be absent when calculating the averages of their overarching categories. This was done so uninteresting modules can be removed. To keep track of how filtering is affecting the modules underlying the categories, use the "--show_module_count" flag. 
 
-### Examples:
+## Examples:
 Default run to generate an output containing the module completions of every fasta processed in the KEGGstand output:
 ```
 python KEGGstand_tsv_maker.py -i /random_folder/my_favorite_fastas_KEGGstand_output/ -o /output_folder/my_favorite_prefix
