@@ -283,6 +283,11 @@ if __name__ == "__main__":
         if filter_method != "avg" and filter_method != "min" and filter_method != "max":
             print('Error, specified method needs to be "min","max", or "avg". {} was not recognized.'.format(filter_method))
             exit()
+    if "--collapse_method" in sys.argv:
+        collapse_method = sys.argv[sys.argv.index("--collapse_method") + 1]
+        if collapse_method != "avg" and collapse_method != "min" and collapse_method != "max":
+            print('Error, specified method needs to be "min","max", or "avg". {} was not recognized.'.format(collapse_method))
+            exit()
     if "--module_search" in sys.argv:
         if "," in sys.argv[sys.argv.index("--module_search") + 1]:
             search_string_list = sys.argv[sys.argv.index("--module_search") + 1].split(",")
