@@ -26,6 +26,10 @@ The scripts are highly similar, but due to their different outputs can take slig
   Can alternatively specify a comma-delimited list of categories, or input "ALL", to output every single category. *Put the categories within quotation marks, otherwise python will only consider the first word*
 
 ### KEGGstand_graph_maker.py
+__IMPORTANT:__ The graphmaker scripts requires the seaborn package and its dependencies. If used on Deigo, the easiest way to acquire these is to activate a conda environment with these packages present. I have been using 
+```
+conda activate /bucket/HusnikU/Conda-envs/genovi
+```
 #### Mandatory
 * __-i *path/to/dir/*__: Path to the directory containing KEGGstand output.
 * __-o *outputname*__: Path/name of the output heatmap. __The extension used here will affect the format of the heatmap__. Supported formats are pdf, png, ps, eps, and svg. Default is .png. 
