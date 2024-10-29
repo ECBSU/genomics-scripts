@@ -205,7 +205,7 @@ if __name__ == "__main__":
         graphname = sys.argv[sys.argv.index("-o") + 1]
         if "." in graphname:
             outformat = graphname.split(".")[1].strip()
-            if outformat != "png" and outformat != "png" and outformat != "pdf" and outformat != "ps" and outformat != "eps" and outformat != "svg":
+            if outformat != "png" and outformat != "pdf" and outformat != "ps" and outformat != "eps" and outformat != "svg":
                 print("{} is an unrecognized output format, will default to .png format".format(outformat))
         else:
             print("No extension in the outputname, will default to .png format")
@@ -215,7 +215,7 @@ if __name__ == "__main__":
     #Initiate and check optional variables
     minimum_completion = 0
     filter_method = "min"
-    graph_method = "avg"
+    collapse_method = "avg"
     height = 10
     width = 10
     color = "coolwarm"
@@ -233,10 +233,10 @@ if __name__ == "__main__":
         if filter_method != "avg" and filter_method != "min" and filter_method != "max":
             print('Error, specified method needs to be "min","max", or "avg". {} was not recognized.'.format(filter_method))
             exit()
-    if "--graph_method" in sys.argv:
-        graph_method = sys.argv[sys.argv.index("--graph_method") + 1]
-        if graph_method != "avg" and graph_method != "min" and graph_method != "max":
-            print('Error, specified method needs to be "min","max", or "avg". {} was not recognized.'.format(graph_method))
+    if "--collapse_method" in sys.argv:
+        collapse_method = sys.argv[sys.argv.index("--collapse_method") + 1]
+        if collapse_method != "avg" and collapse_method != "min" and collapse_method != "max":
+            print('Error, specified method needs to be "min","max", or "avg". {} was not recognized.'.format(collapse_method))
             exit()
     if "--dimensions" in sys.argv:
         height,width = sys.argv[sys.argv.index("--dimensions") + 1].split(",")
@@ -295,7 +295,7 @@ if __name__ == "__main__":
         module_dict = retain_only_specified_modules(module_dict, search_string_list, filter_string_list)
     #Collapse modules into categories
     if collapse_level != 0:
-        module_dict = category_collapser(module_dict, db_path, collapse_level, graph_method, show_module_count)
+        module_dict = category_collapser(module_dict, db_path, collapse_level, collapse_method, show_module_count)
         #Remove categories based on string searches
         if cat_filter_string_list != [] or cat_search_string_list != []:
             module_dict = retain_only_specified_modules(module_dict, cat_search_string_list, cat_filter_string_list)
