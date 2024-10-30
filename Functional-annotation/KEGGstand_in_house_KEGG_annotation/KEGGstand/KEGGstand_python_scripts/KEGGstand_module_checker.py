@@ -4,7 +4,7 @@ Parses the K number from an Eggnog .annotation file. Uses a database of KEGG mod
 all possible combinations of genes that complete the pathway. Using the parsed K number,
 checks which combination is most complete, and gives the highest completion per KEGG module.
 
-Usage: (python) KEGGstand_module_checker input.emapper.annotations path_to_KEGG_module.txt
+Usage: (python) KEGGstand_module_checker input.emapper.annotations Output_prefix path/to/KEGG_module_db
 
 Output:
 Writes a .tsv file following the name: *input.emapper.annotations*_KEGG_completion.tsv. 
@@ -39,12 +39,13 @@ def KEGG_module_reader(KEGG_module_file_path):
             continue
         if not line.strip():
             continue
-        if line.startswith("Module: "):
-            name = line.strip("Module: ").strip()
+        if line.startswith("Module:"):
+            name = line.partition("Module:")[2].strip()
+            print(name)
             if name not in KEGG_dict:
                 KEGG_dict[name] = []
-        if line.startswith("Definition: "):
-            KEGG_dict[name].append(line.strip("Definition: ").strip())
+        if line.startswith("Definition:"):
+            KEGG_dict[name].append(line.partition("Definition:")[2].strip())
     return KEGG_dict
 
 def output_tsv(outputname, output_dict, minimum_completion):
