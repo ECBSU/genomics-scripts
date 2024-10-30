@@ -201,7 +201,7 @@ if __name__ == "__main__":
     elif "--in_files" in sys.argv:
         files = sys.argv[sys.argv.index("--in_files") + 1].split(",")
     else:
-        print("No input specified, specify input directory with '-i'")
+        print("No input specified, specify input directory with '--in_dir'")
         sys.exit()
     if "--output" in sys.argv:
         graphname = sys.argv[sys.argv.index("--output") + 1]
