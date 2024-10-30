@@ -175,7 +175,7 @@ def category_collapser(module_dict, module_db_path, level, method, show_module_c
                 out_dict[org][clss] = max(out_dict[org][clss])
     return out_dict
                 
-def heatmap(data_dict, outname, height, width, color, outformat):
+def heatmap(data_dict, outname, height, width, color, outformat, cluster_samples):
     import numpy as np
     import matplotlib.pyplot as plt
     import seaborn as sns
@@ -183,7 +183,7 @@ def heatmap(data_dict, outname, height, width, color, outformat):
     import scipy
     
     df = pd.DataFrame(data_dict)
-    ax = sns.clustermap(df, metric="euclidean", method="single", cmap= color, figsize=(float(width), float(height)), linewidths=0.5, linecolor='white', col_cluster = False)
+    ax = sns.clustermap(df, metric="euclidean", method="single", cmap= color, figsize=(float(width), float(height)), linewidths=0.5, linecolor='white', col_cluster = cluster_samples)
     ax.fig.subplots_adjust(left=0.1)
     ax.fig.subplots_adjust(bottom=0.25)
     ax.ax_cbar.set_position((0.02, 0.6, 0.03, 0.2))
@@ -281,6 +281,7 @@ if __name__ == "__main__":
     module_dict = {}
     #Iterate over the files in the input directory or read the specified files         
     if "--in_dir" in sys.argv:
+        cluster_samples = True
         for root, dirs, files in os.walk(indir): 
             for file in files: 
                 #Obtain the completion value per module per fasta
@@ -289,6 +290,7 @@ if __name__ == "__main__":
                     modules = completion_tsv_reader(os.path.join(root, file))
                     module_dict[org_name] = modules
     else:
+        cluster_samples = False
         for file in files: 
             #Obtain the completion value per module per fasta
             if file.endswith(".emapper.annotations_KEGG_completion.tsv"):
@@ -309,4 +311,4 @@ if __name__ == "__main__":
         #Remove categories based on string searches
         if cat_filter_string_list != [] or cat_search_string_list != []:
             module_dict = retain_only_specified_modules(module_dict, cat_search_string_list, cat_filter_string_list)
-    heatmap(module_dict, graphname, height, width, color, outformat)
+    heatmap(module_dict, graphname, height, width, color, outformat, cluster_samples)
