@@ -257,7 +257,7 @@ if __name__ == "__main__":
     if "--in_dir" in sys.argv:
         indir = sys.argv[sys.argv.index("--in_dir") + 1]
     else:
-        print("No input specified, specify input directory with '-i'")
+        print("No input specified, specify input directory with '--in_dir'")
         sys.exit()
     if "--output" in sys.argv:
         out_prefix = sys.argv[sys.argv.index("--output") + 1]
