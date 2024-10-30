@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Processes and merges all the KEGGstand output in the provided directory, and gives visualizes them as a heatmap
+Processes and merges all the KEGGstand output in the provided directory, and visualizes them as a heatmap
 
-Usage: (python) KEGGstand_tsv_maker.py -i /directory/of/KEGGstand/output -o plot_name.extension [arguments]
+Usage: (python) KEGGstand_graph_maker.py --in_dir /directory/of/KEGGstand/output --output plot_name.extension [arguments]
 
 Output:
 Image file of the specified heatmap
@@ -90,11 +90,14 @@ def retain_only_specified_modules(module_dict, search_string_list, filter_string
     if len(filter_string_list) > 0:
         for org in module_dict:
             for module in module_dict[org]:
+                write = True
                 for string in filter_string_list:
-                    if string not in module:
-                        if org not in temp_dict:
-                            temp_dict[org] = {}
-                        temp_dict[org][module] = module_dict[org][module]
+                    if string in module:
+                        write = False
+                if write:    
+                    if org not in temp_dict:
+                        temp_dict[org] = {}
+                    temp_dict[org][module] = module_dict[org][module]
     #Only use the modules with a string matching the search_string_list
     if len(search_string_list) > 0:
         out_dict = {}
@@ -311,4 +314,5 @@ if __name__ == "__main__":
         #Remove categories based on string searches
         if cat_filter_string_list != [] or cat_search_string_list != []:
             module_dict = retain_only_specified_modules(module_dict, cat_search_string_list, cat_filter_string_list)
+    
     heatmap(module_dict, graphname, height, width, color, outformat, cluster_samples)
