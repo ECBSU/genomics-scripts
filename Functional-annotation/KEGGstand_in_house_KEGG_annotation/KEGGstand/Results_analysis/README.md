@@ -48,7 +48,7 @@ conda activate /bucket/HusnikU/Conda-envs/genovi
 * __--dimensions *number,number*__: Desired dimensions of the created plot in inches. First value is height, the second is width.
 * __--color *color_scheme*__: Desired colorscheme of the heatmap. Default is "coolwarm". Check here for options: https://www.practicalpythonfordatascience.com/ap_seaborn_palette
 #### Custom column or row orders 
-If you want to disable clustering of either samples or modules/categories, and instead specify your own order. Use the following instructions:
+If you want to disable clustering of either samples or modules/categories, and instead specify your own order. Use the following arguments:
 * __--input_files *comma_delimited_list*__: Comma-delimited list of KEGGstand output files. If you provide this list INSTEAD of --input_dir, the clustering of samples will be disabled, and instead the order of samples will reflect the order of the provided list.
 * __--no_module_cluster__: By providing this argument, clustering of the modules/categories will be disabled. By default, modules will then be given in order of their entry code (M00001, M00002 etc.). Alternatively, you can specify your own order by providing a list using the --module_search (or --category_search if --collapse is specified) argument. In that case, the module order will reflect the order of strings given. Note that if multiple modules match the given string(s), they will be ordered according to the entry code. 
 
@@ -81,6 +81,10 @@ python KEGGstand_tsv_maker.py -i /random_folder/my_favorite_fastas_KEGGstand_out
 A run for generating a heatmap of the samples, containing completion values for all modules. 
 ```
 python KEGGstand_graph_maker.py -i /random_folder/my_favorite_fastas_KEGGstand_output/ -o /output_folder/heatmap.pdf
+```
+A run for generating a heatmap, showing only the modules for various essential amino acids, and only showing their biosynthesis pathways by ignoring degradation pathways. Modules will not be clustered, but instead ordered by product.
+```
+python KEGGstand_graph_maker.py -i /random_folder/my_favorite_fastas_KEGGstand_output/ -o /output_folder/heatmap.pdf --no_module_cluster --module_search Arginine,Histidine,Isoleucine,Leucine,Lysine,Methionine,Phenylalanine,Threonine --module_filter degradation
 ```
 A run for generating a heatmap, considering only modulesthat are above 0.5 completion in every sample, collapsing them into their broadest categories, and removing the categories including the word Xenobiotics. 
 ```
