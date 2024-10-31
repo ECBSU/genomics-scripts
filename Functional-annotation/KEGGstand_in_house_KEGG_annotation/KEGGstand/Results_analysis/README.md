@@ -32,7 +32,6 @@ conda activate /bucket/HusnikU/Conda-envs/genovi
 ```
 #### Mandatory
 * __--input_dir *path/to/dir/*__: Path to the directory containing KEGGstand output. ALTERNATIVELY, can use --input_files argument. 
-* __--input_files *comma_delimited_list*__: Comma-delimited list of KEGGstand output files. If given this list, the samples will not be clustered in the heatmap, but will follow the order of the provided file list. 
 * __--output *outputname*__: Path/name of the output heatmap. __The extension used here will affect the format of the heatmap__. Supported formats are pdf, png, ps, eps, and svg. Default is .png. 
 #### Optional
 * __--completion *number*__: Desired completion values, used to avoid outputting uninformative modules. By default will only consider modules where the lowest completion found for any sample is above or equal to the specified completion.
@@ -48,6 +47,10 @@ conda activate /bucket/HusnikU/Conda-envs/genovi
 #### Graph_maker only
 * __--dimensions *number,number*__: Desired dimensions of the created plot in inches. First value is height, the second is width.
 * __--color *color_scheme*__: Desired colorscheme of the heatmap. Default is "coolwarm". Check here for options: https://www.practicalpythonfordatascience.com/ap_seaborn_palette
+#### Custom column or row orders 
+If you want to disable clustering of either samples or modules/categories, and instead specify your own order. Use the following instructions:
+* __--input_files *comma_delimited_list*__: Comma-delimited list of KEGGstand output files. If you provide this list INSTEAD of --input_dir, the clustering of samples will be disabled, and instead the order of samples will reflect the order of the provided list.
+* __--no_module_cluster__: By providing this argument, clustering of the modules/categories will be disabled. By default, modules will then be given in order of their entry code (M00001, M00002 etc.). Alternatively, you can specify your own order by providing a list using the --module_search (or --category_search if --collapse is specified) argument. In that case, the module order will reflect the order of strings given. Note that if multiple modules match the given string(s), they will be ordered according to the entry code. 
 
 ## Output
 Tsv_maker will make a tab-delimited text file (or two if KEGG_cat is specified). The first line is a header line (preceded with # to allow for removal). The first column lists the modules or BRITE/pathway categories. 
