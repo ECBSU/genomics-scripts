@@ -60,9 +60,9 @@ for i in ${bins}; do barrnap ${i} --kingdom euk --outseq ${id_out_dir}/${bin_dir
 for i in ${bins}; do cat ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}_barrnap/${i}_bac.fasta ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}_barrnap/${i}_arc.fasta ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}_barrnap/${i}_euk.fasta > ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}_barrnap/${i}_total.fasta; done
 
 #Remove the intermediate barrnap outputs
-rm ${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}_barrnap/*_bac.fasta
-rm ${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}_barrnap/*_arc.fasta
-rm ${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}_barrnap/*_euk.fasta
+rm ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}_barrnap/*_bac.fasta
+rm ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}_barrnap/*_arc.fasta
+rm ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}_barrnap/*_euk.fasta
 
 echo "-----------------------------------------------"
 echo "BLASTing SSU sequences"
