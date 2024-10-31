@@ -100,10 +100,13 @@ def retain_only_specified_modules(module_dict, search_string_list, filter_string
                     temp_dict[org][module] = module_dict[org][module]
     #Only use the modules with a string matching the search_string_list
     if len(search_string_list) > 0:
+        if len(temp_dict) == 0:
+            temp_dict = module_dict
         out_dict = {}
         for org in temp_dict:
-            for module in temp_dict[org]:
-                for string in search_string_list:
+            out_dict[org] = {}
+            for string in search_string_list:
+                for module in temp_dict[org]:
                     if string in module:
                         out_dict[org][module] = module_dict[org][module]
     else:
@@ -178,7 +181,7 @@ def category_collapser(module_dict, module_db_path, level, method, show_module_c
                 out_dict[org][clss] = max(out_dict[org][clss])
     return out_dict
                 
-def heatmap(data_dict, outname, height, width, color, outformat, cluster_samples):
+def heatmap(data_dict, outname, height, width, color, outformat, cluster_samples, cluster_modules):
     import numpy as np
     import matplotlib.pyplot as plt
     import seaborn as sns
@@ -186,7 +189,7 @@ def heatmap(data_dict, outname, height, width, color, outformat, cluster_samples
     import scipy
     
     df = pd.DataFrame(data_dict)
-    ax = sns.clustermap(df, metric="euclidean", method="single", cmap= color, figsize=(float(width), float(height)), linewidths=0.5, linecolor='white', col_cluster = cluster_samples)
+    ax = sns.clustermap(df, metric="euclidean", method="single", cmap= color, figsize=(float(width), float(height)), linewidths=0.5, linecolor='white', col_cluster = cluster_samples, row_cluster = cluster_modules)
     ax.fig.subplots_adjust(left=0.1)
     ax.fig.subplots_adjust(bottom=0.25)
     ax.ax_cbar.set_position((0.02, 0.6, 0.03, 0.2))
@@ -231,6 +234,7 @@ if __name__ == "__main__":
     collapse_level = 0
     db_path = ""
     show_module_count = False
+    cluster_modules = True
     if "--completion" in sys.argv:
         minimum_completion = float(sys.argv[sys.argv.index("--completion") + 1])
     if "--filter_method" in sys.argv:
@@ -279,7 +283,8 @@ if __name__ == "__main__":
         exit()
     if "--show_module_count" in sys.argv:
         show_module_count = True
-        
+    if "--no_module_cluster" in sys.argv:
+        cluster_modules = False
     #######################################
     module_dict = {}
     #Iterate over the files in the input directory or read the specified files         
@@ -315,4 +320,4 @@ if __name__ == "__main__":
         if cat_filter_string_list != [] or cat_search_string_list != []:
             module_dict = retain_only_specified_modules(module_dict, cat_search_string_list, cat_filter_string_list)
     
-    heatmap(module_dict, graphname, height, width, color, outformat, cluster_samples)
+    heatmap(module_dict, graphname, height, width, color, outformat, cluster_samples, cluster_modules)
