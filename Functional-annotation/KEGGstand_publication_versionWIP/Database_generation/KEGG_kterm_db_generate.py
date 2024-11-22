@@ -79,20 +79,18 @@ if __name__ == "__main__":
                 #obtain the KEGG entry and only write the part up to and including the BRITE hierarchy
                 entry = REST.kegg_get(term, option=None)
                 read = False
-                out = open(out_file, "a")
-                for i in entry:
-                    #Many KEGG entries contain extensive external links to other resources, sequences, and literature, these are not relevant here and skipped
-                    if i.startswith("ENTRY"):
-                        read = True
-                    if i.startswith("DBLINKS"):
-                        read = False
-                    if i.startswith("GENES"):
-                        read = False
-                    if i.startswith("REFERENCE"):
-                        read = False
-                    if read:
-                        out.write(i)
+                with open(out_file, "a") as out:
+                    for i in entry:
+                        # Many KEGG entries contain extensive external links to other resources, sequences, and literature.
+                        # These are not relevant here and skipped
+                        if i.startswith("ENTRY"):
+                            read = True
+                        if i.startswith(("DBLINKS", "GENES", "REFERENCE")):
+                            read = False
+                        if read:
+                            out.write(i)
                 written = True
+                tries = 0  # Reset tries after successful execution
             except:
                 tries += 1
                 print("No connection, waiting 2 minutes")
