@@ -81,23 +81,24 @@ if __name__ == "__main__":
                 entry = REST.kegg_get(mod, option=None)
                 defin = False
                 clss = False
-                out = open(out_file, "a")
-                for i in entry:
-                    #Extract only the name and definition from the module entry
-                    if i.startswith("NAME"):
-                        out.write("Module: {} {}\n".format(mod, i.partition(" ")[2].strip()))
-                    if i.startswith("DEFINITION"):
-                        defin = True
-                    if i.startswith("CLASS"):
-                        clss = True
-                    if i.startswith("PATHWAY") or i.startswith("REACTION") or i.startswith("COMPOUND") or i.startswith("ORTHOLOGY") or i.startswith("REFERENCE"):
-                        defin = False
-                        clss = False
-                    if defin:
-                        out.write("Definition: {}\n".format(i.strip("DEFINITION").strip()))
-                    if clss:
-                        out.write("Class: {}\n".format(i.strip("CLASS").strip()))
-                written = True
+                with open(out_file, "a") as out:
+                    for i in entry:
+                        #Extract only the name and definition from the module entry
+                        if i.startswith("NAME"):
+                            out.write("Module: {} {}\n".format(mod, i.partition(" ")[2].strip()))
+                        if i.startswith("DEFINITION"):
+                            defin = True
+                        if i.startswith("CLASS"):
+                            clss = True
+                        if i.startswith(("PATHWAY", "REACTION", "COMPOUND", "ORTHOLOGY", "REFERENCE")):
+                            defin = False
+                            clss = False
+                        if defin:
+                            out.write("Definition: {}\n".format(i.strip("DEFINITION").strip()))
+                        if clss:
+                            out.write("Class: {}\n".format(i.strip("CLASS").strip()))
+                    written = True
+                    tries = 0
             except:
                 tries += 1
                 print("No connection, waiting 2 minutes")
