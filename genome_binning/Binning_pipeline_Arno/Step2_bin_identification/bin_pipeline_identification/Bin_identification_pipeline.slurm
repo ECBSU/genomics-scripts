@@ -35,6 +35,7 @@ mkdir ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}
 cp ${bin_dir[${SLURM_ARRAY_TASK_ID}]}/*.fa ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}
 cp ${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}_semibin/*.fa ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}/
 cp ${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}_metabat/*.fa ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}/
+cp ${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}_rosella/*.fa ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}/
 cp ${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}_DASTool/*.fa ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}/
 
 echo "-----------------------------------------------"
