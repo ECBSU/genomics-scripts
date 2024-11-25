@@ -35,8 +35,10 @@ mkdir ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}
 cp ${bin_dir[${SLURM_ARRAY_TASK_ID}]}/*.fa ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}
 cp ${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}_semibin/*.fa ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}/
 cp ${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}_metabat/*.fa ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}/
-cp ${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}_rosella/*.fa ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}/
+cp ${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}_rosella/*.fna ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}/
 cp ${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}_DASTool/*.fa ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}/
+#Change the Rosella bin extensions to match
+for i in ${id_out_dir}/${bin_dir[${SLURM_ARRAY_TASK_ID}]%%_concoct}/*.fna; do mv ${i} ${i%.*}.fa; done
 
 echo "-----------------------------------------------"
 echo "Running pipeline on:"
