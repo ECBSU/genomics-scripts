@@ -4,6 +4,8 @@ Tools used:
 - BCFtools
 - VCFtools
 - ANGSD
+- bgzip
+- tabix
 
 
 
