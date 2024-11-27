@@ -9,37 +9,20 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=vivienne.gao@oist.jp
 
-### Slurm information: https://groups.oist.jp/scs/use-slurm
-### Save as /path/to/personal/directory/Jobs/YYYYMM/MMDD_Job.slurm
-
 set -euo pipefail
 
 
 #===============================================================================================#
 
-## Edit this part before running the script
-
 #-------------Softwares--------------#
-# Conda env paths - this is only necessary if I want to set up a Conda Environment, which is an isolated environment to manage packages and their dependencies and makes the analysis more reproducible and easy to use (installing and updating software in the environment wi$
-
-# Software directory paths - to tell slurm where to find the software packages, creates variables in the script environment so I don't have to define the path every time
 BCFTOOLS='/apps/unit/HusnikU/bcftools'
-
-# Database paths
-
 #------------------------------------#
 
 #---------------Inputs---------------#
 RUN_DIR='/flash/HusnikU/vivienne/Palythoa/Jobs/202410'
 INPUT_DIR='/flash/HusnikU/vivienne/Palythoa/Jobs/202410/bowtie2'
 OUTPUT_DIR='/flash/HusnikU/vivienne/Palythoa/Jobs/202410/bcftools'
-
 reference='/flash/HusnikU/vivienne/Palythoa/Palythoa_Final_assembly.fasta'
-#------------------------------------#
-
-#-------------Parameters-------------#
-THREADS='128' # More than 16 is recommended
-MEMORY='200G' # More than 100 GB is recommended
 #------------------------------------#
 
 #===============================================================================================#
