@@ -14,6 +14,8 @@ Tools used:
 - tabix
 
 
+BCFtools: https://samtools.github.io/bcftools/howtos/index.html
+
 
 
 ANGSD pipeline
