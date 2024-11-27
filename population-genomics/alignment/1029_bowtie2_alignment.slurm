@@ -1,0 +1,139 @@
+#!/bin/bash
+#SBATCH --partition compute
+#SBATCH --time 4-0
+#SBATCH --mem=200G
+#SBATCH --cpus-per-task 128
+#SBATCH --nodes 1
+#SBATCH --job-name=1029_bowtie2_alignment_palythoa
+#SBATCH --output=/flash/HusnikU/vivienne/Palythoa/Jobs/202410/1029_bowtie2_alignment_palythoa.log
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=vivienne.gao@oist.jp
+
+set -euo pipefail # certain common errors will cause the script to immediately fail, error detection and debugging
+                        # -euo causes bash to exit if any command has a non-zero exit status, a previiously undefined variable is referenced, pipelines fail if any command fails
+
+#===============================================================================================#
+
+#-------------Softwares--------------#
+BOWTIE2='/apps/unit/HusnikU/bowtie2-2.4.4-linux-x86_64'
+SAMTOOLS='/apps/unit/HusnikU/samtools-1.15.1'
+#------------------------------------#
+
+#---------------Inputs---------------#
+# RUN_DIR sets the working directory (so we can have all our outputs in the same place)
+RUN_DIR='/flash/HusnikU/vivienne/Palythoa/Jobs/202410/bowtie2'
+reference='/flash/HusnikU/vivienne/Palythoa/Palythoa_Final_assembly.fasta'
+#------------------------------------#
+
+#===============================================================================================#
+
+
+# define set_software_path function - this way we only need to change the path in one place if we need to
+set_software_paths() {
+        # bowtie
+        BOWTIE2_INDEX="${BOWTIE2}/bowtie2-build"
+        BOWTIE2="${BOWTIE2}/bowtie2"
+
+        # samtools
+        SAMTOOLS="${SAMTOOLS}/samtools"
+
+        return 0
+}
+
+#generate bowtie2 index if not already created
+create_index() {
+
+        if ! ls "${RUN_DIR}/Palythoa_Final_assembly_bowtie2"*.bt2 &>/dev/null; then # if ! checks for failure and performs action if command fails, &> identifies stdout and stderr, /dev/null ensures no output is shown (if no bt2 files exist, avoids ls error message), ls $
+                echo "Bowtie2 index not found. Generating index..."
+                ${BOWTIE2_INDEX} -f --threads $((THREADS)) "${reference}" "${RUN_DIR}/Palythoa_Final_assembly_bowtie2" # this creates bowtie2 index using ${reference} and saving to a file in RUN_DIR with the basename Palythoa...bt2 etc
+        else
+            	echo "Bowtie2 index found. Skipping index generation."
+        fi
+
+	return 0
+}
+
+# define run bowtie2 function - runs bowtie2 alignment based on bowtie2 index (created above)
+run_bowtie2() {
+        echo 'Running bowtie2'
+
+        local clean_sample_name="${SAMPLE// /_}"; clean_sample_name="${clean_sample_name//[()]/}" # removing spaces and () from sample files to avoid confusion in downstream analysis
+        echo ${clean_sample_name}
+        echo "Checking for existing files for sample: ${clean_sample_name}"
+
+        if [ ! -f "${RUN_DIR}/${clean_sample_name}_bowtie2.sorted.bam" ]; then # if ! runs command if files do not exist, [] is for evaluating test expressions (one file)
+                echo 'Running bowtie2 for' ${clean_sample_name}
+                ${BOWTIE2} -f -q --reorder --threads $((THREADS)) --time --met-stderr --met 10 -x "${RUN_DIR}/Palythoa_Final_assembly_bowtie2" -1 "${read_f}" -2 "${read_r}" > "${RUN_DIR}/${clean_sample_name}_bowtie2".sam # directs alignment output into named .sam file
+        #this line runs the bowtie2 alignment using index, -q FastQ format, --reoder output ordered according to input reads, --threads specifies number of threads to use,
+        # --time records time taken, --met-stderr --met 10 for metrics output, -x specifies index files, -1 and -2 are used to specify paths to forward and reverse reads
+
+        else
+            	echo "${clean_sample_name} alignment already exists. Skipping bowtie2 alignment."
+        fi
+
+	return 0
+}
+
+# samtools to convert bowtie2 .sam file to .bam file for downstream analysis
+run_samtools() {
+
+        echo 'Running samtools'
+
+        local clean_sample_name="${SAMPLE// /_}"; clean_sample_name="${clean_sample_name//[()]/}"
+
+        if [ ! -f "${RUN_DIR}/${clean_sample_name}_bowtie2.sorted.bam" ]; then # specifies to only run function if samples have not already been processed
+                echo "Running samtools for" ${clean_sample_name}
+                ${SAMTOOLS} sort --output-fmt BAM --threads $((THREADS-1)) "${RUN_DIR}/${clean_sample_name}_bowtie2.sam" -o "${RUN_DIR}/${clean_sample_name}_bowtie2.sorted.bam" # sorts input SAM file, outputs BAM file, input file, -o specifies output file
+                rm -f "${RUN_DIR}/${clean_sample_name}_bowtie2.sam" # remove sam file after conversion
+                ${SAMTOOLS} index -b -@ $((THREADS-1)) "${RUN_DIR}/${clean_sample_name}_bowtie2.sorted.bam" # generated index for BAM file - crucial for tools like genome viewers and downstream analysis
+        else
+            	echo "${clean_sample_name} samtools output already exists. Skipping."
+        fi
+
+	return 0
+}
+
+main() {
+        ## Create running directory if doesn't exist
+        mkdir -p "${RUN_DIR}"
+        cd "${RUN_DIR}" || exit
+
+        ## Set software paths
+        set_software_paths
+
+        ## generate index if not already present
+        create_index
+
+        while IFS=, read -r SAMPLE read_f read_r; do
+                if [[ "${SAMPLE}" == "sample" || "${SAMPLE}" == \#* ]]; then
+                        continue
+                fi
+
+                if [[ "$read_f" == "Missing" ]]; then
+                        echo "Skipping sample ${SAMPLE} due to missing forward read"
+                        continue
+                fi
+
+                # extract the first vale for read_r, ignoring any additional ones
+                read_r=${read_r%%,*}
+
+                echo '-----------------------------------------------'
+                echo "Processing sample:${SAMPLE}"
+                echo '-----------------------------------------------'
+
+                run_bowtie2
+                run_samtools
+
+        done < '/flash/HusnikU/vivienne/Palythoa/raw_data.csv'
+
+        echo 'ALL JOBS COMPLETED'
+
+        return 0
+}
+
+
+# Execute main function
+main
+
+### Run with $ sbatch /path/to/personal/directory/Jobs/YYYYMM/MMDD_Job.slurm
+### To check the running jobs, run $ squeue
