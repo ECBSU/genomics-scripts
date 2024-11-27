@@ -1,4 +1,4 @@
-Various commands used to call SNPs and generate genotype frequency files
+### Various commands used to call SNPs and generate genotype frequency files
 
 Tools used:
 - BCFtools
