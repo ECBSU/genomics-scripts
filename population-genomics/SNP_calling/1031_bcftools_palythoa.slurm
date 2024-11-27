@@ -32,8 +32,6 @@ set_software_paths() {
 
         MPILEUP="${BCFTOOLS}/bcftools mpileup"
         CALL="${BCFTOOLS}/bcftools call"
-        FILTER="${BCFTOOLS}/bcftools filter"
-        CONSENSUS="${BCFTOOLS}/bcftools consensus"
         return 0
 }
 
