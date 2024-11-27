@@ -1,4 +1,4 @@
-Population genomics scripts
+## Population genomics scripts
 
 
 Bowtie2 alignment
