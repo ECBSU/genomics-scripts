@@ -71,10 +71,10 @@ if __name__ == "__main__":
     #For any undownloaded terms, download them and append them to the database
     for term in k_terms:
         written = False
+        tries = 0 #Initialize number of tries, and reset upon succesful download
         while not written:
             #Here "try" is used because KEGG will sometimes refuse connection, causing an error.
             #If this happens, the script will pause for 2 minutes and try again
-            tries = 0
             try:
                 #obtain the KEGG entry and only write the part up to and including the BRITE hierarchy
                 entry = REST.kegg_get(term, option=None)
@@ -90,7 +90,6 @@ if __name__ == "__main__":
                         if read:
                             out.write(i)
                 written = True
-                tries = 0  # Reset tries after successful execution
             except:
                 tries += 1
                 print("No connection, waiting 2 minutes")
