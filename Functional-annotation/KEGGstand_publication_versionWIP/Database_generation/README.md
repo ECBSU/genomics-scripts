@@ -8,15 +8,14 @@ Running the module database generation will take several minutes, generating a d
 is significantly larger, and running the corresponding script will take several hours. The generated database will be approx. 27Mb.
 
 ## Important notes
-Both scripts query the KEGG server. KEGG monitors their traffic and will break connection if excessive traffic is generated. I thus recommend
-to not combine running these scripts with other KEGG-related activities. 
+Both scripts query the KEGG server. KEGG monitors their traffic and will break connection if excessive traffic is generated. It is thus not recommended to 
+run these scripts in parallel with each other or other KEGG downloads.  
 
 The scripts include several measures to minimize and handle disconnects. However, if KEGG disallows connection for a prolonged time (10 consecutive minutes), the script will exit. 
-The script will store its current progress, and if called again using the same output file, will check it's progress and continue where it left off. This functionality also allows
-the scripts to update existing databases to the current version of KEGG.
+The script will store its current progress, and if called again using the same output file, will check it's progress and continue where it left off.
 
 ## Input
-The scripts both take only a single argument, which is the name/path of the database that it will generate.
+The scripts both take only a single argument, which is the path of the database output to be generated.
 
 Example command:
 ```
