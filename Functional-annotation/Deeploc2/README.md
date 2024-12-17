@@ -1,3 +1,5 @@
+Currently broken 2024/12/17
+
 This is run on Deigo
 
 For DeepLoc2, If you large fasta file, it will take an extremely long time to run.
