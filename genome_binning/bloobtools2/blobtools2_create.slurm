@@ -11,7 +11,7 @@ work_dir=/path/to/work_dir
 
 #activate conda environment 
 source /home/y/yong-phua/conda_ini.sh 
-conda activate btk_env
+conda activate btk
 
 #create database
 blobtools create --fasta $work_dir/scaffolds.fasta $work_dir/blob2/
