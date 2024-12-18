@@ -1,17 +1,22 @@
 #!/bin/bash
-#SBATCH -p compute
-#SBATCH -t 4-0
-#SBATCH --mem=64G
-#SBATCH -c 64
-#SBATCH -n 1
-#SBATCH --job-name=deeploc_array
-#SBATCH --output=/path/to/logs/%A_%a.out
-#SBATCH --array=XX-XX%XX
 
-files=(path/to/folder/of/fasta/*)
-echo "slurm: " ${files[${SLURM_ARRAY_TASK_ID}]}
+#SBATCH -p gpu
+#SBATCH --output=deeploc2.out
+#SBATCH -t 1-0
+#SBATCH --mem=46G
+#SBATCH -c 4
+#SBATCH --gres=gpu:1
+#SBATCH --job-name=deeploc
 
-source /home/y/yong-phua/conda_ini.sh 
-conda activate deeploc
-deeploc2 -f ${files[${SLURM_ARRAY_TASK_ID}]} -o /flash/HusnikU/Phua_2/sino_transcriptome/deeploc_full -m Accurate
-conda deactivate
+#INPUT VARIABLES !!CHANGE AS NEEDED!!
+input_fasta=/path/to/fasta
+out_dir=/path/to/dir
+conda_ex=/path/to/activate/your/conda #OR use mine /work/HusnikU/phua/conda_ini.sh 
+
+#Activate modules and conda enviroment
+source ${conda_ex}
+conda activate /home/y/yong-phua/miniforge3/envs/deeploc
+ml cuda
+
+#Run Deeploc2.1
+deeploc2 -f $input_fasta -o $out_dir -m Accurate -d cuda
