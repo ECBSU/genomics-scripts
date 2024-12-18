@@ -6,7 +6,8 @@ Then run deeploc2.slurm
 
 On Deigo if you large fasta file, it will take an extremely long time to run.
 You will also need to change line 22 `cuda` -> `cpu` 
-I will first split the fasta file (split_fasta.py) then do an array slurm script
+
+I recommend to first split the fasta file (split_fasta.py) then do an array slurm script
 
 ```
 source /home/y/yong-phua/conda_ini.sh 
