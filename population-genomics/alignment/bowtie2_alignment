@@ -20,7 +20,6 @@ SAMTOOLS='/apps/unit/HusnikU/samtools-1.15.1'
 #------------------------------------#
 
 #---------------Inputs---------------#
-# RUN_DIR sets the working directory (so we can have all our outputs in the same place)
 RUN_DIR='/flash/HusnikU/vivienne/Palythoa/Jobs/202410/bowtie2'
 reference='/flash/HusnikU/vivienne/Palythoa/Palythoa_Final_assembly.fasta'
 #------------------------------------#
