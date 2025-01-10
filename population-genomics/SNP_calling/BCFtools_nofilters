@@ -10,7 +10,7 @@
 #SBATCH --mail-user=vivienne.gao@oist.jp
 
 set -euo pipefail
-
+set -x
 
 #===============================================================================================#
 
@@ -21,7 +21,7 @@ BCFTOOLS='/apps/unit/HusnikU/bcftools'
 #---------------Inputs---------------#
 RUN_DIR='/flash/HusnikU/vivienne/Palythoa/Jobs/202410'
 INPUT_DIR='/flash/HusnikU/vivienne/Palythoa/Jobs/202410/bowtie2'
-OUTPUT_DIR='/flash/HusnikU/vivienne/Palythoa/Jobs/202410/bcftools'
+VCF_DIR='/flash/HusnikU/vivienne/Palythoa/Jobs/202410/bcftools'
 reference='/flash/HusnikU/vivienne/Palythoa/Palythoa_Final_assembly.fasta'
 #------------------------------------#
 
@@ -32,19 +32,15 @@ set_software_paths() {
 
         MPILEUP="${BCFTOOLS}/bcftools mpileup"
         CALL="${BCFTOOLS}/bcftools call"
+	BCFTOOLS_MERGE='/apps/unit/HusnikU/bcftools/bcftools merge'
+	BCFTOOLS_QUERY='/apps/unit/HusnikU/bcftools/bcftools query'
+	BGZIP='/home/v/vivienne-gao/htslib/bgzip'
+	TABIX='/home/v/vivienne-gao/htslib/tabix'
+
         return 0
 }
 
-#main function
-
-main() {
-
-        # make directory if it does not exist
-        mkdir -p "${OUTPUT_DIR}"
-        cd "${RUN_DIR}" || exit
-
-        # set software paths
-        set_software_paths
+bcftools_call() {
 
         echo "----------------------------------------"
         echo "Running bcftools..."
@@ -59,9 +55,9 @@ main() {
                 # Step 1: Convert BAM to VCF
                 echo "Processing ${base_name}"
 
-                if [ ! -f "$OUTPUT_DIR/${base_name}_variants.vcf" ]; then # if ! runs command if files do not exist, [] is for evaluating test expressions (one file)
+                if [ ! -f "$VCF_DIR/${base_name}_variants.vcf" ]; then # if ! runs command if files do not exist, [] is for evaluating test expressions (one file)
                         echo 'Running bcftools mpileup and bcftools call  for' ${base_name}
-                        ${MPILEUP} -Ou -f "${reference}" "${bam_file}" | ${CALL} -mv -Ov -o "$OUTPUT_DIR/${base_name}_variants.vcf" # bcftools mpileup output piped to bcftools call
+                        ${MPILEUP} -Ou -f "${reference}" "${bam_file}" | ${CALL} -mv -Ov -o "$VCF_DIR/${base_name}_variants.vcf" # bcftools mpileup output piped to bcftools call
                         # -Ou specifies uncompressed BCF output (ideal for piping to other commands), -mv detect snps and indels (-m) and output only variant sites (-v)
 
                 else
@@ -72,12 +68,79 @@ main() {
         done
 
 	echo "----------------------------"
-        echo "ALL SAMPLES COMPLETED"
+        echo "VCF file generation complete. Now compressing and indexing ..."
+        echo "----------------------------"
+
+	for vcf_file in "${VCF_DIR}"/*.vcf; do
+		${BGZIP} -c "${vcf_file}" > "${vcf_file}.gz" # compress file with bgzip
+		${TABIX} -p vcf "${vcf_file}.gz"
+		echo "Compressed and indexed: ${vcf_file}.gz"
+	done
+
+	echo "----------------------------"
+        echo "All VCF files compressed and indexed. woohoo."
         echo "----------------------------"
 
         return 0
 
 }
 
-# run main function
-main
+bcftools_merge(){
+
+	# make temporary directory to store paths to vcf files
+	vcf_file_list=$(mktemp)
+
+	for vcf_file in "${VCF_DIR}"/*.vcf.gz; do
+		echo "${vcf_file}" >> "${vcf_file_list}"
+	done
+
+	echo "-------------------------------------"
+	echo "Merging VCF files ... "
+	echo "-------------------------------------"
+
+	#merge multiple compressed and indexed vcf files into one from file list (created above), merges variants of the same type to allow for multiallelic records
+	${BCFTOOLS_MERGE} --file-list "${vcf_file_list}" -m snp-ins-del -Oz -o ./combined_vcf_palythoa.vcf.gz
+
+	echo "Merging files succesful. Merged VCF file saved as combined_vcf_palythoa.vcf.gz"
+
+	return 0
+}
+
+bcftools_rename(){
+
+	COMBINED_VCF="combined_vcf_palythoa.vcf.gz"
+	MAPPING_FILE="sample_map.txt"
+
+	echo "Generating mapping file and renaming samples ... "
+
+	> "${MAPPING_FILE}" # generate and clear mapping file if already exists
+
+	#use bcftools to generate a list of all current sample names in the combined VCF file
+	for sample in $(${BCFTOOLS_QUERY} -l "${COMBINED_VCF}"); do
+		#extract the base name without path and extensions
+		new_name=$(basename "${sample}" | sed 's/_bowtie2.sorted.bam//; s/_bowtie2_variants.vcf.gz//')
+
+		echo -e "${sample}\t${new_name}" >> "${MAPPING_FILE}"
+	done
+
+	echo "Sample name mapping file generated"
+
+	${BCFTOOLS_REHEADER} -s ${MAPPING_FILE} -o renamed_vcf_palythoa.vcf.gz ${COMBINED_VCF}
+
+	echo "VCF file sample names changed and all jobs completed"
+
+	return 0
+}
+
+
+# make directory if it does not exist
+mkdir -p "${OUTPUT_DIR}"
+cd "${RUN_DIR}" || exit
+
+# run functions
+set_software_paths
+bcftools_call
+bcftools_merge
+bcftools_rename
+
+## merged a couple scripts to create comprehensive pipeline - pls check for errors esp in variable names
