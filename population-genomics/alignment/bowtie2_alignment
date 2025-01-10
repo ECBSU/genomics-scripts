@@ -44,7 +44,7 @@ create_index() {
 
         if ! ls "${RUN_DIR}/Palythoa_Final_assembly_bowtie2"*.bt2 &>/dev/null; then # if ! checks for failure and performs action if command fails, &> identifies stdout and stderr, /dev/null ensures no output is shown (if no bt2 files exist, avoids ls error message), ls $
                 echo "Bowtie2 index not found. Generating index..."
-                ${BOWTIE2_INDEX} -f --threads $((THREADS)) "${reference}" "${RUN_DIR}/Palythoa_Final_assembly_bowtie2" # this creates bowtie2 index using ${reference} and saving to a file in RUN_DIR with the basename Palythoa...bt2 etc
+                ${BOWTIE2_INDEX} -f "${reference}" "${RUN_DIR}/Palythoa_Final_assembly_bowtie2" # this creates bowtie2 index using ${reference} and saving to a file in RUN_DIR with the basename Palythoa...bt2 etc
         else
             	echo "Bowtie2 index found. Skipping index generation."
         fi
