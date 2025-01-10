@@ -1,0 +1,53 @@
+#!/bin/bash
+#SBATCH --partition compute
+#SBATCH --time 4-0
+#SBATCH --mem=200G
+#SBATCH --cpus-per-task=128
+#SBATCH --job-name=NGSadmix
+#SBATCH --output=/flash/HusnikU/vivienne/Palythoa/Jobs/202411/1113_NGSadmix_palythoa.log
+#SBATCH --error=/flash/HusnikU/vivienne/Palythoa/Jobs/202411/1113_NGSadmix_palythoa.err
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=vivienne.gao@oist.jp
+
+set -euo pipefail
+set -x
+
+#===============================================================================================#
+
+#-------------Softwares--------------#
+NGSadmix_DIR='/home/v/vivienne-gao/angsd/misc'
+#------------------------------------#
+
+#---------------Inputs---------------#
+RUN_DIR='/flash/HusnikU/vivienne/Palythoa/Jobs/202411/ANGSD/NGSadmix' 
+INPUT_DIR='/flash/HusnikU/vivienne/Palythoa/Jobs/202411/ANGSD' 
+beagle_admixture='/flash/HusnikU/vivienne/Palythoa/Jobs/202411/ANGSD/all_admixture.beagle.gz'
+#------------------------------------#
+
+#===============================================================================================#
+
+set_software_paths() {
+
+	NGSADMIX='/home/v/vivienne-gao/angsd/misc/NGSadmix'
+
+	mkdir -p ${RUN_DIR}
+	cd ${RUN_DIR} || exit
+
+	return 0
+}
+
+NGS_admix() {
+
+	echo '------------------------------------------------------'
+	echo '                                                      '
+	echo 'Running NGS admixture ...'
+	echo '                                                      '
+	echo '------------------------------------------------------'
+	${NGSADMIX} -likes ${beagle_admixture} -K 2 -minMaf 0.05 -seed 1 -o "${RUN_DIR}/all_admixture"
+  # manually change K to reflect number of theoretical ancestral populations i.e. -K 3 or -K 7 and so on.
+
+	return 0
+}
+
+set_software_paths
+NGS_admix
