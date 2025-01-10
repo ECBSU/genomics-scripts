@@ -2,7 +2,7 @@
 #SBATCH --partition compute
 #SBATCH --time 4-0
 #SBATCH --mem=200G
-#SBATCH --cpus-per-task 128
+#SBATCH --cpus-per-task 64
 #SBATCH --nodes 1
 #SBATCH --job-name=1031_bcftools_palythoa
 #SBATCH --output=/flash/HusnikU/vivienne/Palythoa/Jobs/202410/1031_bcftools_palythoa.log
