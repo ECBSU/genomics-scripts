@@ -25,7 +25,7 @@ KEGGstand_module_checker_path=/bucket/HusnikU/Unit_Members/Arno/Scripts/KEGGstan
 KEGGstand_pathway_checker_path=/bucket/HusnikU/Unit_Members/Arno/Scripts/KEGGstand_pathway_checker.py
 KEGG_module_database_path=/bucket/HusnikU/Unit_Members/Arno/Scripts/KEGG_module_db
 KEGG_pathway_database_path=/bucket/HusnikU/Unit_Members/Arno/Scripts/KEGG_k_entries_db
-conda_source_path=/home/a/arno-hagenbeek/miniconda3/etc/profile.d/conda.sh
+conda_source_path=/home/a/arno-hagenbeek/miniforge3/etc/profile.d/conda.sh
 eggnog_path=/home/a/arno-hagenbeek/miniconda3/envs/eggnog-mapper
 
 #########################
