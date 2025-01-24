@@ -1,4 +1,4 @@
-RNAseq analysis pipeline. 
+RNAseq analysis pipeline. (Broken as of 2025 Jan)
 ---
 
 This utilises both deigo and dell workstation.
