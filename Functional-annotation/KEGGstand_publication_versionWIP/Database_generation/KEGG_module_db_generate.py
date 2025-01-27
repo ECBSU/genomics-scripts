@@ -55,14 +55,16 @@ def list_modules():
 #MAIN
 ####################################################################    
 if __name__ == "__main__":
-    #Aquire the desired database filename
-    out_file = sys.argv[1]
+    #Argument parser
+    parser = argparse.ArgumentParser(description='Downloads all KEGG modules utilizing the KEGG API server')
+    parser.add_argument('-o', help='Path/name of the desired output file', required=True, dest="out_file")
+    in_args = vars(parser.parse_args())
     #Acquire the list of k terms from KEGG
     module_list = list_modules()
     #Check which k terms are already present in the database (if it exists).
     #Remove any terms already in the database from the list, so they wont be downloaded again
-    if os.path.isfile(out_file):
-        for mod in find_processed_entries(out_file):
+    if os.path.isfile(in_args['out_file']):
+        for mod in find_processed_entries(in_args['out_file']):
             if mod in module_list:
                 module_list.remove(mod)
             else:
@@ -80,7 +82,7 @@ if __name__ == "__main__":
                 entry = REST.kegg_get(mod, option=None)
                 defin = False
                 clss = False
-                with open(out_file, "a") as out:
+                with open(in_args['out_file'], "a") as out:
                     for i in entry:
                         #Extract only the name and definition from the module entry
                         if i.startswith("NAME"):
