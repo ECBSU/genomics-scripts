@@ -11,9 +11,9 @@ Usage:
 ###################  
 
 from Bio.KEGG import REST
-import sys
 import os
 import time
+import argparse
 
 ###################
 #Functions
@@ -55,14 +55,16 @@ def k_term_list():
 #MAIN
 ####################################################################    
 if __name__ == "__main__":
-    #Aquire the desired database filename
-    out_file = sys.argv[1]
+    #Argument parser
+    parser = argparse.ArgumentParser(description='Downloads all KEGG k-terms utilizing the KEGG API server')
+    parser.add_argument('-o', help='Path/name of the desired output file', required=True, dest="out_file")
+    in_args = vars(parser.parse_args())
     #Acquire the list of k terms from KEGG
     k_terms = k_term_list()
     #Check which k terms are already present in the database (if it exists).
     #Remove any terms already in the database from the list, so they wont be downloaded again
-    if os.path.isfile(out_file):
-        for term in find_processed_entries(out_file):
+    if os.path.isfile(in_args['out_file']):
+        for term in find_processed_entries(in_args['out_file']):
             if term in k_terms:
                 k_terms.remove(term)
             else:
@@ -79,7 +81,7 @@ if __name__ == "__main__":
                 #obtain the KEGG entry and only write the part up to and including the BRITE hierarchy
                 entry = REST.kegg_get(term, option=None)
                 read = False
-                with open(out_file, "a") as out:
+                with open(in_args['out_file'], "a") as out:
                     for i in entry:
                         # Many KEGG entries contain extensive external links to other resources, sequences, and literature.
                         # These are not relevant here and skipped
