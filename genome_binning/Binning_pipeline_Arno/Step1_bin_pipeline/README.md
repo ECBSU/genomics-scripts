@@ -1,4 +1,4 @@
-# Binning pipeline using Metabat2, CONCOCT, Semibin, and DASTool
+# Binning pipeline using Metabat2, CONCOCT, Semibin, Rosella and DASTool
 ## Info
 This pipeline will align provided reads against the provided assemblies, and use the provided assemblies
 and the created .bam files to perform binning. Binning will be performed using Metabat2, CONCOCT, Semibin, and Rosella,
