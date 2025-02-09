@@ -24,7 +24,7 @@ rawreads_dir=/path/to/read/dir/
 #Output directory
 out_dir=/path/to/output/dir/
 #Conda installation
-conda_ex=/home/a/arno-hagenbeek/miniconda3/etc/profile.d/conda.sh
+conda_ex=/home/a/arno-hagenbeek/miniforge3/etc/profile.d/conda.sh
 
 #INPUT READING
 #############################################
