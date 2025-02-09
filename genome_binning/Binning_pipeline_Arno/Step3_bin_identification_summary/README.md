@@ -39,4 +39,4 @@ a large number of Propionibacteria or similar skin contamintants in unrelated ba
 
 For bins that seem to contain organisms of interest, I typically assess its completion with BUSCO/CheckM and compare bin length, GC content and coding density to the those
 known from related organisms. If bin length (given the degree of completion), GC content, and coding density are in line with related organisms, I move on to annotation using
-for example prokka,eggnog or BLASTKoala. 
+for example bakta,eggnog or BLASTKoala. 
