@@ -1,12 +1,22 @@
-#running blastn for scaffolds vs nt database
-/hpcshare/appsunit/HusnikU/ncbi-blast-2.11.0+/bin/blastn -query scaffolds.fasta -db /flash/HusnikU/databases/nt/nt -outfmt '6 qseqid staxids bitscore std' -max_target_seqs 1 -max_hsps 1 -evalue 1e-25 -num_threads 64 > scaffolds_vs_blastn.out
+# Load necessary modules
+ml bioinfo-ugrp-modules
+ml DB/blastDB/ncbi/2022-07-nt
 
-#combining the output from nt database to create the json file which will have the data to write plots/tables
+# Activate conda
+source /home/y/yong-phua/conda_ini.sh
+conda activate blobtools
+
+# Run BLASTn
+/hpcshare/appsunit/HusnikU/ncbi-blast-2.11.0+/bin/blastn -query scaffolds.fasta -db /flash/HusnikU/databases/nt/nt -outfmt '6 qseqid staxids bitscore std' \
+    -max_target_seqs 1 -max_hsps 1 -evalue 1e-25 -num_threads 64 > scaffolds_vs_blastn.out
+
+# Create BlobTools database
 /apps/unit/HusnikU/blobtools/blobtools create -i scaffolds.fasta -y spades -t scaffolds_vs_blastn.out --db /home/y/yong-phua/blobtaxid/nodesDB.txt 
 
-#plotting blobplot at different taxonomical rank 
+# Generate BlobPlots
 /apps/unit/HusnikU/blobtools/blobtools plot -i blobDB.json
+
 /apps/unit/HusnikU/blobtools/blobtools plot -i blobDB.json -r order
 
-#writing tables with order and family ranks
+# Generate taxonomic tables
 /apps/unit/HusnikU/blobtools/blobtools view -i blobDB.json -r phylum -r order -r family
