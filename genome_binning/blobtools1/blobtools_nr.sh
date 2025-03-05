@@ -7,7 +7,7 @@ source /home/y/yong-phua/conda_ini.sh
 conda activate blobtools
 
 # Run BLASTn
-/hpcshare/appsunit/HusnikU/ncbi-blast-2.11.0+/bin/blastn -query scaffolds.fasta -db /flash/HusnikU/databases/nt/nt -outfmt '6 qseqid staxids bitscore std' \
+/hpcshare/appsunit/HusnikU/ncbi-blast-2.11.0+/bin/blastn -query scaffolds.fasta -db /bucket/HusnikU/Databases/nt/nt -outfmt '6 qseqid staxids bitscore std' \
     -max_target_seqs 1 -max_hsps 1 -evalue 1e-25 -num_threads 64 > scaffolds_vs_blastn.out
 
 # Create BlobTools database
