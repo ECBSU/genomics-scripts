@@ -13,6 +13,7 @@ Image file of the specified heatmap
 ################### 
 import sys
 import os
+import argparse
 
 ###################
 # Functions
@@ -195,102 +196,55 @@ def heatmap(data_dict, outname, height, width, color, outformat, cluster_samples
     ax.ax_cbar.set_position((0.02, 0.6, 0.03, 0.2))
     plt.savefig(outname, format = outformat)     
             
-
 ####################################################################
 #MAIN
-####################################################################    
+####################################################################
 if __name__ == "__main__":
     #Acquire and handle input
     #########################
-    if "--in_dir" in sys.argv:
-        indir = sys.argv[sys.argv.index("--in_dir") + 1]
-    elif "--in_files" in sys.argv:
-        files = sys.argv[sys.argv.index("--in_files") + 1].split(",")
-    else:
-        print("No input specified, specify input directory with '--in_dir'")
-        sys.exit()
-    if "--output" in sys.argv:
-        graphname = sys.argv[sys.argv.index("--output") + 1]
-        if "." in graphname:
-            outformat = graphname.split(".")[1].strip()
-            if outformat != "png" and outformat != "pdf" and outformat != "ps" and outformat != "eps" and outformat != "svg":
+    parser = argparse.ArgumentParser(description = 'Processes and merges all the KEGGstand output in the provided directory, and visualizes them as a heatmap')
+    in_group = parser.add_mutually_exclusive_group(required=True)
+    in_group.add_argument("-in", "--in_dir", help="Path to the directory containing KEGGstand output.", dest='indir')
+    in_group.add_argument("--in_files", help="Comma-delimited list of KEGGstand output files. If you provide this list INSTEAD of --input_dir, the clustering of samples will be disabled, and instead the order of samples will reflect the order of the provided list.", dest='files')
+    parser.add_argument("-out", "--output",help="output file", default="KEGGstand_heatmap.png")
+    #Optional variables
+    optional_grp = parser.add_argument_group("Optional parameters")
+    optional_grp.add_argument("--completion",default=0,type=float, help="Desired completion values, used to avoid outputting uninformative modules. By default will only consider modules where the lowest completion found for any sample is above or equal to the specified completion.")
+    optional_grp.add_argument("--filter_method", choices={"avg","max","min"}, default="min", help='Changes the calculation of the desired completion values. Options are "min", "max", and "avg". "min" is the default behaviour, requiring the lowest completion to be above or equal to the desired completion. "max" specifies the inverse, with the highest value needing to be equal or higher. "avg" specifies that the average module completion needs to be higher or equal to the specified completion.')
+    optional_grp.add_argument("--collapse_method", choices={"avg","max","min"}, default="avg", help='Specifies the value to be given for the collapsed categories. Default is the average completion of the contained modules (avg). Alternatives are "min" (lowest value) and "max" (highest value)')
+    optional_grp.add_argument('--height', default=10, help="Desired height of the created plot in inches")
+    optional_grp.add_argument('--width', default=10, help="Desired width of the created plot in inches")
+    optional_grp.add_argument("--module_search", help="Specifies a string that needs to be PRESENT in the module name. Modules WITHOUT this string are not considered. Can give multiple strings by delimiting with a comma. If spaces are included the string should be within quotation marks")
+    optional_grp.add_argument("--module_filter", help="Specifies a string that needs to be ABSENT in the module name. Modules WITH this string are not considered. Can give multiple strings by delimiting with a comma. If spaces are included the string should be within quotation marks")
+    optional_grp.add_argument("--category_search", help="Specifies that the modules are instead to be listed by their overarching categories (eg rather than showing the Citrate cycle and Pentose phosphate pathway completions as separate, their results are combined into a Central carbohydrate metabolism category). The number represents the level of detail for the categories. 1 is the broadest categories (eg energy metabolism), 2 is slightly more specific categories (eg methane metabolism). If this is specified, --db needs to be specified as well.")
+    optional_grp.add_argument("--category_filter", help="Functions like the --module_filter argument, but instead of disregarding modules with the specified string, will disregard the categories with the specified string.")
+    optional_grp.add_argument("--color", default="coolwarm", help="Desired colorscheme of the heatmap. Default is 'coolwarm'.")
+    optional_grp.add_argument("--db", default="", help="Path to the module database used to generate the results. Used to find the categories to which the modules belong.")
+    optional_grp.add_argument("--collapse", default=0, type=int, choices={0,1,2}, help="Specifies that the modules are instead to be listed by their overarching categories (eg rather than showing the Citrate cycle and Pentose phosphate pathway completions as separate, their results are combined into a Central carbohydrate metabolism category). The number represents the level of detail for the categories. 1 is the broadest categories (eg energy metabolism), 2 is slightly more specific categories (eg methane metabolism). If this is specified, --db needs to be specified as well.")
+    optional_grp.add_argument("--show_module_count", action="store_true", help="Specifies that the number of contained modules are to be listed in the name of the categories. Only does anything if --collapse is given.")
+    optional_grp.add_argument("--no_module_cluster", action="store_false", help="By providing this argument, clustering of the modules/categories will be disabled. By default, modules will then be given in order of their entry code (M00001, M00002 etc.). Alternatively, you can specify your own order by providing a list using the --module_search (or --category_search if --collapse is specified) argument. In that case, the module order will reflect the order of strings given. Note that if multiple modules match the given string(s), they will be ordered according to the entry code.")
+    args = parser.parse_args()
+
+    if "." in args.output:
+            outformat = args.output.split(".")[1].strip()
+            if outformat not in {"png", "pdf", "ps", "eps", "svg"}:
                 print("{} is an unrecognized output format, will default to .png format".format(outformat))
-        else:
-            print("No extension in the outputname, will default to .png format")
     else:
-        graphname = "KEGGstand_heatmap.png"
-        outformat = "png"
-    #Initiate and check optional variables
-    minimum_completion = 0
-    filter_method = "min"
-    collapse_method = "avg"
-    height = 10
-    width = 10
-    color = "coolwarm"
-    search_string_list = []
-    filter_string_list = []
-    cat_search_string_list = []
-    cat_filter_string_list = []
-    collapse_level = 0
-    db_path = ""
-    show_module_count = False
-    cluster_modules = True
-    if "--completion" in sys.argv:
-        minimum_completion = float(sys.argv[sys.argv.index("--completion") + 1])
-    if "--filter_method" in sys.argv:
-        filter_method = sys.argv[sys.argv.index("--filter_method") + 1]
-        if filter_method != "avg" and filter_method != "min" and filter_method != "max":
-            print('Error, specified method needs to be "min","max", or "avg". {} was not recognized.'.format(filter_method))
-            exit()
-    if "--collapse_method" in sys.argv:
-        collapse_method = sys.argv[sys.argv.index("--collapse_method") + 1]
-        if collapse_method != "avg" and collapse_method != "min" and collapse_method != "max":
-            print('Error, specified method needs to be "min","max", or "avg". {} was not recognized.'.format(collapse_method))
-            exit()
-    if "--dimensions" in sys.argv:
-        height,width = sys.argv[sys.argv.index("--dimensions") + 1].split(",")
-    if "--module_search" in sys.argv:
-        if "," in sys.argv[sys.argv.index("--module_search") + 1]:
-            search_string_list = sys.argv[sys.argv.index("--module_search") + 1].split(",")
-        else:
-            search_string_list = [sys.argv[sys.argv.index("--module_search") + 1]]
-    if "--module_filter" in sys.argv:
-        if "," in sys.argv[sys.argv.index("--module_filter") + 1]:
-            filter_string_list = sys.argv[sys.argv.index("--module_filter") + 1].split(",")
-        else:
-            filter_string_list = [sys.argv[sys.argv.index("--module_filter") + 1]]
-    if "--category_search" in sys.argv:
-        if "," in sys.argv[sys.argv.index("--category_search") + 1]:
-            cat_search_string_list = sys.argv[sys.argv.index("--category_search") + 1].split(",")
-        else:
-            cat_search_string_list = [sys.argv[sys.argv.index("--category_search") + 1]]
-    if "--category_filter" in sys.argv:
-        if "," in sys.argv[sys.argv.index("--category_filter") + 1]:
-            cat_filter_string_list = sys.argv[sys.argv.index("--category_filter") + 1].split(",")
-        else:
-            cat_filter_string_list = [sys.argv[sys.argv.index("--category_filter") + 1]]
-    if "--color" in sys.argv:
-        color = sys.argv[sys.argv.index("--color") + 1]         
-    if "--db" in sys.argv:
-        db_path = sys.argv[sys.argv.index("--db") + 1]   
-    if "--collapse" in sys.argv:
-        collapse_level = int(sys.argv[sys.argv.index("--collapse") + 1])
-    if collapse_level > 2:
-        print("Level of category collapse has to be lower than 3. Defaulting to 2")
-        collapse_level = 2
-    elif collapse_level > 0 and db_path == "":
-        print("Error, collapse was specified, but no module database path was given. The module database is required for collapsing the categories")
-        exit()
-    if "--show_module_count" in sys.argv:
-        show_module_count = True
-    if "--no_module_cluster" in sys.argv:
-        cluster_modules = False
+        print("No extension in the outputname, will default to .png format")
+
+    if args.collapse > 0 and args.db_path is None:
+        parser.error("Error: collapse was specified, but no module database path was given. The module database is required for collapsing the categories.")
+    
+    search_string_list = [s.strip() for s in args.module_search.split(",")] if args.module_search else []
+    filter_string_list = [s.strip() for s in args.module_filter.split(",")] if args.module_filter else []
+    cat_search_string_list = [s.strip() for s in args.category_search.split(",")] if args.category_search else []
+    cat_filter_string_list = [s.strip() for s in args.category_filter.split(",")] if args.category_filter else []
     #######################################
     module_dict = {}
-    #Iterate over the files in the input directory or read the specified files         
-    if "--in_dir" in sys.argv:
+    #Iterate over the files in the input directory or read the specified files
+    if args.indir:
         cluster_samples = True
-        for root, dirs, files in os.walk(indir): 
+        for root, dirs, files in os.walk(args.indir): 
             for file in files: 
                 #Obtain the completion value per module per fasta
                 if file.endswith(".emapper.annotations_KEGG_completion.tsv"):
@@ -299,25 +253,24 @@ if __name__ == "__main__":
                     module_dict[org_name] = modules
     else:
         cluster_samples = False
-        for file in files: 
+        for file in args.files: 
             #Obtain the completion value per module per fasta
             if file.endswith(".emapper.annotations_KEGG_completion.tsv"):
                 org_name = file.partition(".emapper")[0].rpartition("/")[2]
                 modules = completion_tsv_reader(file)
                 module_dict[org_name] = modules
 
-
     #Remove any modules that dont meet the completion requirements
-    if minimum_completion > 0 or filter_method != "min":
-        module_dict = remove_modules_below_completion(module_dict, minimum_completion, filter_method) 
+    if args.completion > 0 or args.filter_method != "min":
+        module_dict = remove_modules_below_completion(module_dict, args.completion, args.filter_method) 
     #Remove modules based on string searches
     if search_string_list != [] or filter_string_list != []:
         module_dict = retain_only_specified_modules(module_dict, search_string_list, filter_string_list)
     #Collapse modules into categories
-    if collapse_level != 0:
-        module_dict = category_collapser(module_dict, db_path, collapse_level, collapse_method, show_module_count)
+    if args.collapse != 0:
+        module_dict = category_collapser(module_dict, args.db, args.collapse, args.collapse_method, args.show_module_count)
         #Remove categories based on string searches
         if cat_filter_string_list != [] or cat_search_string_list != []:
             module_dict = retain_only_specified_modules(module_dict, cat_search_string_list, cat_filter_string_list)
     
-    heatmap(module_dict, graphname, height, width, color, outformat, cluster_samples, cluster_modules)
+    heatmap(module_dict, args.output, args.height, args.width, args.color, outformat, cluster_samples, args.no_module_cluster)
