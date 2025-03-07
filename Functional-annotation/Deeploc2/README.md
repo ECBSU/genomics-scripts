@@ -1,4 +1,4 @@
-On Saion, 
+Installed on Saion 20241218 PhuaYH, 
 Change the input variables in the slurm script
 Then run deeploc2.slurm 
 
