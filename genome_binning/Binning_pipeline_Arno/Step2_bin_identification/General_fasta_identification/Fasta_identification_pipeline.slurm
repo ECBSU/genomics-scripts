@@ -30,7 +30,7 @@ id_out_dir=/flash/HusnikU/Arno/Bin_identification
 #Run barrnap on all fastas, set to bacteria, archea, and eukaryotes
 mkdir ${id_out_dir}/barrnap
 cd ${fasta_dir}
-bins=*.fa
+bins=(*.fa)
 
 echo "-----------------------------------------------"
 echo "Running pipeline on:"
