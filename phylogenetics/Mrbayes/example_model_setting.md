@@ -1,5 +1,4 @@
 To run Mrbayes, you will need to make .nex file and specify the settings to run Mrbayes.
-Remember to change Line 10 your nex file
 
 Example of settings (from Filip and Petra)
 
