@@ -1,6 +1,6 @@
 ## Population genomics pipeline
 
-#### !! currently  updating ...
+#### ! currently  updating ... !
 
 1. Bowtie2 alignment and BAM alignment filt filtering/preprocessing
 2. SNP calling and variant filtering
