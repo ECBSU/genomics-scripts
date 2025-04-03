@@ -1,0 +1,30 @@
+#!/bin/bash
+#SBATCH --partition compute
+#SBATCH --time 4-0
+#SBATCH --mem=200G
+#SBATCH --cpus-per-task=32
+#SBATCH --nodes 1
+#SBATCH --job-name=post-variant_filtering
+#SBATCH --output=/flash/HusnikU/vivienne/Palythoa/Jobs/202504/0204_vcftools_filter.log
+#SBATCH --error=/flash/HusnikU/vivienne/Palythoa/Jobs/202504/0204_vcftools_filter.err
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=vivienne.gao@oist.jp
+
+set -euo pipefail
+set -x  # Enable debugging
+
+#===============================================================================================#
+#-------------Software Paths--------------#
+ml bioinfo-ugrp-modules
+ml DebianMed
+ml vcftools/0.1.16
+#-----------------------------------------#
+
+#---------------Inputs---------------------#
+RUN_DIR='/flash/HusnikU/vivienne/Palythoa/Jobs/202504/vcftools'
+INPUT_DIR='/flash/HusnikU/vivienne/Palythoa/Jobs/202503/vcf_files'
+vcf='/bucket/HusnikU/Unit_Members/vivienne/202503/vcf_files/16chr.vcf.gz'
+#------------------------------------------#
+#===============================================================================================#
+
+vcftools --gzvcf ${vcf} --relatedness --out "all_samples"
