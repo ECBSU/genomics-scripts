@@ -1,0 +1,36 @@
+#!/bin/bash
+#SBATCH --partition compute
+#SBATCH --time 4-0
+#SBATCH --mem=200G
+#SBATCH --cpus-per-task=32
+#SBATCH --nodes 1
+#SBATCH --job-name=post-variant_filtering
+#SBATCH --output=/flash/HusnikU/vivienne/Palythoa/Jobs/202504/0204_vcftools_filter.log
+#SBATCH --error=/flash/HusnikU/vivienne/Palythoa/Jobs/202504/0204_vcftools_filter.err
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=vivienne.gao@oist.jp
+
+set -euo pipefail
+set -x  # Enable debugging
+
+#===============================================================================================#
+#-------------Software Paths--------------#
+ml bioinfo-ugrp-modules
+ml DebianMed
+ml vcftools/0.1.16
+ml plink2/2.00~a3.5-220809+dfsg-1+b2
+#-----------------------------------------#
+
+#---------------Inputs---------------------#
+RUN_DIR='/flash/HusnikU/vivienne/Palythoa/Jobs/202504/vcftools'
+INPUT_DIR='/flash/HusnikU/vivienne/Palythoa/Jobs/202503/vcf_files'
+vcf='/flash/HusnikU/vivienne/Palythoa/Jobs/202504/final_imputed.vcf.gz'
+#------------------------------------------#
+#===============================================================================================#
+
+mkdir -p ${RUN_DIR}
+cd ${RUN_DIR} || exit
+
+plink2 --vcf ${vcf} --allow-extra-chr --make-bed --out ${RUN_DIR}/0304_plink
+plink2 --vcf ${vcf} --double-id --allow-extra-chr --set-missing-var-ids @:# --indep-pairwise 50 5 0.5 --out palythoa_LD
+plink2 --vcf ${vcf} --double-id --allow-extra-chr --set-missing-var-ids @:# --extract palythoa_LD.prune.in --make-bed --pca --out palythoa_pruned
