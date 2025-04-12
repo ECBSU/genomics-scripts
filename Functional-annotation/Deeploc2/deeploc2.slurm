@@ -11,7 +11,8 @@
 #INPUT VARIABLES !!CHANGE AS NEEDED!!
 input_fasta=/path/to/fasta
 out_dir=/path/to/dir
-conda_ex=/path/to/activate/your/conda #OR use mine /work/HusnikU/phua/conda_ini.sh 
+conda_ex=/path/to/activate/your/conda #OR use mine /home/y/yong-phua/conda_ini.sh
+ 
 
 #Activate modules and conda enviroment
 source ${conda_ex}
