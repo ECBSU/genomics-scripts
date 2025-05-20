@@ -1,4 +1,8 @@
 # Multigene tree reconstruction based on shared BUSCO genes
+## Note
+Akito rewrote this script to be neater and more modular. I recommend using that instead: 
+https://github.com/ASUQ/OIST_Scripts/tree/main/Python_codes/Busco_multigene_tree
+
 ## Info
 This pipeline will build a multigene tree based on BUSCO genes shared by provided organisms. The script will read BUSCO output of multiple organisms and make 
 multifasta files for shared genes. These multifasta's are then aligned using MAFFT, and trimmed using trimal, and concatenated. Concatenated output is then 
