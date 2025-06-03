@@ -11,7 +11,7 @@ conda activate blobtools
     -max_target_seqs 1 -max_hsps 1 -evalue 1e-25 -num_threads 64 > scaffolds_vs_blastn.out
 
 # Create BlobTools database
-/apps/unit/HusnikU/blobtools/blobtools create -i scaffolds.fasta -y spades -t scaffolds_vs_blastn.out --db /home/y/yong-phua/blobtaxid/nodesDB.txt 
+/apps/unit/HusnikU/blobtools/blobtools create -i scaffolds.fasta -y spades -t scaffolds_vs_blastn.out --db /bucket/.deigo/HusnikU/Databases/blobtaxid/nodesDB.txt 
 
 # Generate BlobPlots
 /apps/unit/HusnikU/blobtools/blobtools plot -i blobDB.json
