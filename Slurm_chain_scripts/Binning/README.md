@@ -18,7 +18,7 @@ First ensure you have appropriate input. The pipeline takes a directory as input
 "R1_001.fastq.gz" for forward reads and "R2_001.fastq.gz" for reverse reads.\
 If your reads have different extensions, you can either change them, or change the extension used by the scripts in the fastp_into_spades.slurm script (line 11 and 12)
 
-With the input directory prepared copy the scripts in this repository to a directory writeable by deigo compute (either your home folder or one of your directories on flash). Note that the logs of the script will be written in the same location as where the scripts are stored and executed.
+With the input directory prepared copy the scripts in this repository (everything but the README.md) to a directory writeable by deigo compute (either your home folder or one of your directories on flash). Note that the logs of the script will be written in the same location as where the scripts are stored and executed.
 
 Next, open the Pipeline_wrapper_script.slurm file in a text editor (in nano for example). In line 11 input the path to the directory containing the fastq files. In line 13 put the path of the directory where you want the binning output. 
 Lastly, if you want to run an array job (like if you have multiple fastq pairs), change the filenumber of line 16. IMPORTANT: This number is an index, which usually start counting from 0. In short, put in 0 for one sample, and 99 for a hundred samples etc. 
