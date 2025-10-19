@@ -29,13 +29,14 @@ Finally, move to the directory containing the scripts, and execute the wrapper s
 There are two main outputs for this script. Firstly is the spades assembly, found in: \
 "/specified_output_folder/spades/fastq_name/". \
 Secondly are the binned MAGs, found in:\
-"/specified_output_folder/binning/fastq_name_combined_bins/"
+"/specified_output_folder/binning/fastq_name_combined_bins/"\
 Additionally, checkm2 quality checks and GTDB-TK taxonomic assignments can be found under:\
 "/specified_output_folder/binning/fastq_name_bin_stats/"
 
-Within the bin_stats folder there will also be a "bin_stats_summary.txt file". This is generated with a python script, and lists the bins found to match a certain taxonomy by gtdb-tk, ordered by their checkm2 quality. The best bins per taxonomy, according to this file, are copied over to a separate directory:\
-"/specified_output_folder/binning/fastq_name_best_bins"
-The bins in this folder make for a good entry point for further analyses, as they will be of good quality and of known taxonomy. However, this is not a foolproof way to get ideal bins, and might omit workable bins.
+Within the bin_stats folder there will also be a "bin_stats_summary.txt file". \
+This is generated with a python script, and lists the bins found to match a certain taxonomy by gtdb-tk, ordered by their checkm2 quality. The best bins per taxonomy, according to this file, are copied over to a separate directory:\
+"/specified_output_folder/binning/fastq_name_best_bins"\
+The bins in this folder make for a good entry point for further analyses, as they will be of good quality and of known taxonomy. However, note that this is not a perfect way to get ideal bins, and might omit workable bins.
 
 ## Notes
 + This pipeline is poorly suited for eukaryotes, as most used tools are not desgined for them.
