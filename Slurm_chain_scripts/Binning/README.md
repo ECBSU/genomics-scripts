@@ -41,6 +41,6 @@ The bins in this folder make for a good entry point for further analyses, as the
 ## Notes
 + This pipeline is poorly suited for eukaryotes, as most used tools are not designed for them.
 + Both assembly and binning are computationally intense analyses. Expect this pipeline to take several days for larger fastqs.
-+ For ease of use, most tool settings are hardcoded, but after downloading, these scripts can be changed freely in their relevant scripts if you have slightly different use cases. 
++ For ease of use, most tool settings are hardcoded, but after downloading, these settings can be changed freely in their relevant scripts if you have different use cases. 
 
 
