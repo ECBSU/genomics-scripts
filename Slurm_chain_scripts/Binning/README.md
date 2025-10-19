@@ -1,5 +1,5 @@
 # Binning chain script
-The various scripts forming a pipeline for binning. The pipeline runs various analyses split over 3 (slurm) jobs:
+The various scripts forming a pipeline for binning. The pipeline runs various analyses split over 3 (slurm) jobs which are performed successively:
 
 ### Job 1
 1. Trimming (fastp)
