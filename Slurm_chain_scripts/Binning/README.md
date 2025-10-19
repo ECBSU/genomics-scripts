@@ -39,7 +39,7 @@ This is generated with a python script, and lists the bins found to match a cert
 The bins in this folder make for a good entry point for further analyses, as they will be of good quality and of known taxonomy. However, note that this is not a perfect way to get ideal bins, and might omit workable bins.
 
 ## Notes
-+ This pipeline is poorly suited for eukaryotes, as most used tools are not desgined for them.
++ This pipeline is poorly suited for eukaryotes, as most used tools are not designed for them.
 + Both assembly and binning are computationally intense analyses. Expect this pipeline to take several days for larger fastqs.
 + For ease of use, most tool settings are hardcoded, but after downloading, these scripts can be changed freely in their relevant scripts if you have slightly different use cases. 
 
