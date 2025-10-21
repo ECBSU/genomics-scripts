@@ -8,9 +8,9 @@
 #           \/
 ##########################
 #Put the path of the directory containing your fastq files here after the "=" symbol 
-fastq_dir=/bucket/HusnikU/Unit_Members/Arno/Gustavo_bobtail_analysis/Central_analysis/All_squid_fastq_temp
+fastq_dir=/path/to/fastq/directory
 #Put the desired path of the output directory here after the "=" symbol . Most likely /flash/HusnikU/your_name/this_job
-outdir=/flash/HusnikU/Arno/chain_pipe_test/
+outdir=/path/to/output/directory
 #Last index of the array
 #This equals your number of samples/fastq pairs minus one (one sample = 0, three samples = 2 etc.)
 filenumber=0
