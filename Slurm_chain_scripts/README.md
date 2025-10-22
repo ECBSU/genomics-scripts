@@ -6,5 +6,5 @@ To run any of the scripts, copy them over to your Deigo home folder (or any othe
 ## Contained scripts
 ### Binning
 fastp -> spades -> metabat2 -> concoct -> semibin2 -> rosella -> Dastool -> checkm2 -> gtdb-tk
-## Phylogeny
+### Phylogeny
 prokka -> orthofinder -> MAFFT -> trimal -> iqtree2
