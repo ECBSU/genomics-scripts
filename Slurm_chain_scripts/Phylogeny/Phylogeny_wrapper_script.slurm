@@ -8,11 +8,11 @@
 #           \/
 ##########################
 #Put the path of the directory containing your genomes here after the "=" symbol 
-genome_dir=/bucket/HusnikU/Unit_Members/Arno/Gustavo_bobtail_analysis/Central_analysis/All_squid_fastq_temp
+genome_dir=/path/to/input/file
 #Put the desired path of the output directory here after the "=" symbol . Most likely /flash/HusnikU/your_name/this_job
-outdir=/flash/HusnikU/Arno/chain_pipe_test/
+outdir=/path/to/output/file
 #Put your fasta extension here (excluding the dot)
-extension=fa
+extension=fna
 
 ###########################
 #Other variables
