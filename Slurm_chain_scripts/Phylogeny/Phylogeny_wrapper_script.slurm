@@ -32,4 +32,4 @@ jobstring=$(sbatch --dependency=afterany:${jobid} orthofinder_tree_pipe2.slurm $
 jobid=${jobstring##* }
 
 #Run the script for iqtree 
-sbatch --dependency=afterany:${jobid} bin_stats.slurm $outdir
+sbatch --dependency=afterany:${jobid} orthofinder_tree_pipe2.slurm $outdir
