@@ -31,7 +31,7 @@ __IMPORTANT:__ The KEGGstand_graph_maker.py script requires the seaborn package 
 conda activate /bucket/HusnikU/Conda-envs/genovi
 ```
 #### Mandatory
-* __--input_dir *path/to/dir/*__: Path to the directory containing KEGGstand output. ALTERNATIVELY, can use --input_files argument. 
+* __--in_dir *path/to/dir/*__: Path to the directory containing KEGGstand output. ALTERNATIVELY, can use --input_files argument. 
 * __--output *outputname*__: Path/name of the output heatmap. __The extension used here will affect the format of the heatmap__. Supported formats are pdf, png, ps, eps, and svg. Default is .png. 
 #### Optional
 * __--completion *number*__: Desired completion values, used to avoid outputting uninformative modules. By default will only consider modules where the lowest completion found for any sample is above or equal to the specified completion.
