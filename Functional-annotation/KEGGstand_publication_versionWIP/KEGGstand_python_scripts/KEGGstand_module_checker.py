@@ -1,35 +1,489 @@
-#!/usr/bin/env python3
-"""
-Parses the K number from an Eggnog .annotation file. Uses a database of KEGG modules to find 
-all possible combinations of genes that complete the pathway. Using the parsed K number,
-checks which combination is most complete, and gives the highest completion per KEGG module.
+from typing import List, Dict, Union, Tuple
+import networkx as nx
+import pandas as pd
+import argparse
+from pathlib import Path
 
-Usage: (python) KEGGstand_module_checker input.emapper.annotations Output_prefix path/to/KEGG_module_db
+######################### Parsing the KEGG compressed graph representation
 
-Output:
-Writes a .tsv file following the name: *input.emapper.annotations*_KEGG_completion.tsv. 
-This tsv file contains a column containing the module name, the highest completion found for the module (as a fraction 0-1), 
-and the k numbers of the genes that comprise this highest completion.
-"""
-###################
-#Import statements
-###################  
+def parse_sequence(s, i=0, end_chars=None):
+    """
+    Parse a sequence of items from string s starting at index i, until one of end_chars is reached.
+    Returns a tuple (elements_list, new_index).
 
-import sys
-import os
+    Each item in elements_list is one of:
+      - a plain enzyme ID (string),
+      - a list of alternatives (each alternative is itself a list of elements),
+      - a tuple ("OPTIONAL", list_of_sequences), where each sequence is a list of elements.
 
-###################
-#File handling functions
-###################  
+    Rules:
+      • Whitespace (spaces, tabs) and '+' both separate sequential sub‐elements.
+      • A '(' kicks off a bracketed group of alternatives, parsed by parse_alternatives.
+      • A ',' or ')' ends the current sequence (depending on end_chars).
+      • A '-' indicates an optional subchain:
+         – Skip the '-' itself,
+         – If the next character is '(' → parse a bracket of alternatives → wrap those alternatives
+           into one optional group,
+         – Otherwise parse a bare ID and wrap it as a one‐step optional group.
+    """
+    if end_chars is None:
+        end_chars = []
+    elements = []
+    length = len(s)
+
+    while i < length:
+        # 1) Skip whitespace
+        if s[i].isspace():
+            i += 1
+            continue
+
+        # 2) If we've reached an “end char” (',' or ')'), stop parsing this level
+        if s[i] in end_chars:
+            break
+
+        # 3) A '+' just separates (complex) steps → skip
+        if s[i] == '+':
+            i += 1
+            continue
+
+        # 4) A '-' means “start of an optional subchain”
+        if s[i] == '-':
+            i += 1
+            # Skip any whitespace after the '-'
+            while i < length and s[i].isspace():
+                i += 1
+
+            # If next char is '(', parse the bracketed alternatives as the optional group
+            if i < length and s[i] == '(':
+                alts, i = parse_alternatives(s, i + 1)
+                # alts is a list of alternative sequences (each itself a list of elements).
+                # Wrap it into one OPTIONAL‐tuple:
+                elements.append(("OPTIONAL", alts))
+
+            else:
+                # Otherwise parse a bare enzyme ID (until whitespace or special char)
+                j = i
+                while j < length and not s[j].isspace() and s[j] not in end_chars \
+                        and s[j] not in ['+', '-', '(', ')', ',']:
+                    j += 1
+                token = s[i:j].strip()
+                if token:
+                    # Wrap that single ID into a one‐step optional group
+                    elements.append(("OPTIONAL", [[token]]))
+                i = j
+
+            continue
+
+        # 5) A '(' means “start a bracketed alternative group”
+        if s[i] == '(':
+            alts, i = parse_alternatives(s, i + 1)
+            # alts is a list of alternative sequences; append it directly
+            elements.append(alts)
+            continue
+
+        # 6) Otherwise it’s a bare enzyme ID (collect until whitespace or a special char)
+        j = i
+        while j < length and not s[j].isspace() and s[j] not in end_chars \
+                and s[j] not in ['+', '-', '(', ')', ',']:
+            j += 1
+        token = s[i:j].strip()
+        if token:
+            elements.append(token)
+        i = j
+
+    return elements, i
+
+def parse_alternatives(s, i):
+    """
+    Parse a comma‐separated list of alternatives from s starting at index i (just after '(').
+    Stops when the matching ')' is found. Returns (list_of_alternatives, new_index).
+
+    Each alternative is itself parsed by parse_sequence(...) up to the next ',' or ')'.
+    """
+    alternatives = []
+    length = len(s)
+
+    while i < length:
+        # Parse one alternative as a sequence until we hit ',' or ')'
+        alt_seq, i = parse_sequence(s, i, end_chars=[',', ')'])
+        alternatives.append(alt_seq)
+
+        if i >= length:
+            break
+        if s[i] == ',':
+            i += 1  # skip comma and parse next alt
+            continue
+        if s[i] == ')':
+            i += 1  # skip closing ')'
+            break
+
+    return alternatives, i
+
+def merge_optional_elements(elements):
+    """
+    In a single list of parsed elements, merge consecutive ("OPTIONAL", ...) items
+    into a single OPTIONAL group whose sequences are the concatenation of each pair.
+
+    For example:
+      elements = ["A", ("OPTIONAL", [["X"], ["Y"]]), ("OPTIONAL", [["Z"]]), "B"]
+    → we want one OPTIONAL whose sequences = [ ["X","Z"], ["Y","Z"] ].
+    """
+    merged = []
+    i = 0
+    while i < len(elements):
+        if isinstance(elements[i], tuple) and elements[i][0] == "OPTIONAL":
+            combined_seqs = elements[i][1]  # this is a list of sequences (each seq is a list of elements)
+            i += 1
+            # As long as the next element is also an OPTIONAL, keep merging
+            while i < len(elements) and isinstance(elements[i], tuple) and elements[i][0] == "OPTIONAL":
+                next_seqs = elements[i][1]
+                new_comb = []
+                for seq1 in combined_seqs:
+                    for seq2 in next_seqs:
+                        new_comb.append(seq1 + seq2)
+                combined_seqs = new_comb
+                i += 1
+            merged.append(("OPTIONAL", combined_seqs))
+        else:
+            merged.append(elements[i])
+            i += 1
+    return merged
+
+def recursive_merge(elements):
+    """
+    Recursively traverse each element, merging OPTIONAL groups at every nesting level.
+
+    If an element is:
+      - a plain string → leave it,
+      - a list of alternatives → recurse into each alternative (which is itself a list of elements),
+      - an ("OPTIONAL", seqs) tuple → for each seq (a list of elements), recurse into that seq.
+
+    After recursion, we also call merge_optional_elements(...) on the top‐level list.
+    """
+    new_elems = []
+    for elem in elements:
+        if isinstance(elem, str):
+            new_elems.append(elem)
+
+        elif isinstance(elem, list):
+            # This is a bracketed‐alternative group: a list of alternative sequences
+            merged_alts = []
+            for alt in elem:   # alt is a list of elements
+                processed_alt = recursive_merge(alt)
+                processed_alt = merge_optional_elements(processed_alt)
+                merged_alts.append(processed_alt)
+            new_elems.append(merged_alts)
+
+        else:
+            # Must be ("OPTIONAL", seqs)
+            tag, seqs = elem
+            if tag != "OPTIONAL":
+                raise ValueError(f"Unknown element type: {elem!r}")
+            merged_seqs = []
+            for seq in seqs:  # seq is itself a list of elements
+                processed_seq = recursive_merge(seq)
+                processed_seq = merge_optional_elements(processed_seq)
+                merged_seqs.append(processed_seq)
+            new_elems.append(("OPTIONAL", merged_seqs))
+
+    return new_elems
+
+def old_process_elements(elements, prev_ids, edges):
+    """
+    Given parsed elements (each of which may be):
+       • a string (enzyme ID),
+       • a list (alternatives),
+       • a tuple ("OPTIONAL", list_of_sequences),
+    and a list prev_ids (the “upstream” nodes to connect from),
+    append (source,target) edges into `edges` and return the new leaves.
+
+    Rules:
+      1) If elem is a string "X":
+         - For each p in prev_ids, append (p, "X")
+         - Then current_prev = ["X"].
+
+      2) If elem is a list (i.e. bracketed alternatives):
+         - For each alternative sequence alt_seq (which itself is a list of elements),
+           call process_elements(alt_seq, prev_ids, edges) to get leaves_for_that_alt.
+         - Combine all those leaves into new current_prev.
+
+      3) If elem is ("OPTIONAL", seqs):
+         - We have two possibilities: “skip” or “take” the entire optional subchain.
+         - Let leaves_skip = prev_ids
+         - For each sequence seq in seqs:
+             • call process_elements(seq, prev_ids, edges) to build edges for “taking” that chain.
+             • collect the leaves from that taken path.
+         - new current_prev = leaves_skip + (all leaves from taken‐paths)
+    """
+    current_prev = prev_ids
+
+    for elem in elements:
+        # Case 1: a plain ID
+        if isinstance(elem, str):
+            for p in current_prev:
+                edges.append((p, elem))
+            current_prev = [elem]
+
+        # Case 2: bracketed‐alternatives
+        elif isinstance(elem, list):
+            all_leaves = []
+            for alt_seq in elem:
+                alt_leaves = process_elements(alt_seq, current_prev, edges)
+                all_leaves.extend(alt_leaves)
+            current_prev = all_leaves
+
+        # Case 3: an optional‐chain marker
+        else:
+            tag, seqs = elem
+            if tag != "OPTIONAL":
+                raise ValueError(f"Unexpected element: {elem!r}")
+
+            # 3a) If we skip the entire optional chain, leaves_skip = current_prev
+            leaves_skip = list(current_prev)
+
+            # 3b) If we take it, we must traverse each possible sub‐sequence in seqs
+            leaves_taken = []
+            for seq in seqs:
+                taken_leaves = process_elements(seq, current_prev, edges)
+                leaves_taken.extend(taken_leaves)
+
+            # 3c) New “current_prev” is union of skip‐leaves and taken‐leaves
+            current_prev = leaves_skip + leaves_taken
+
+    return current_prev
+
+def old_build_pathway_graph(pathway_str: str):
+    """
+    Top‐level function. Given a pathway_str that can contain:
+      - plain IDs (e.g. "K00789"),
+      - complexes joined by '+',
+      - optional subchains joined by '-',
+      - bracketed alternatives "(A,B,C,...)" with commas,
+
+    this builds a directed acyclic graph (DAG) whose edges reflect:
+      BEGIN → first step(s),
+      step → next step(s),
+      optional chains either skipped or fully taken,
+      bracketed alternatives branched,
+      final leaves → END.
+
+    Returns (G, edges), where G is a networkx.DiGraph and edges is the Python list of (src, dst).
+    """
+    # 1) First parse into a raw “elements” list
+    parsed, _ = parse_sequence(pathway_str, 0, end_chars=[])
+
+    # 2) Recursively merge nested OPTIONAL groups
+    parsed_rec = recursive_merge(parsed)
+
+    # 3) Merge any consecutive OPTIONAL markers at this top level
+    parsed_clean = merge_optional_elements(parsed_rec)
+
+    # 4) Walk the cleaned elements, building edges
+    edges = []
+    leaves = process_elements(parsed_clean, ["BEGIN"], edges)
+
+    # 5) Connect every final leaf to "END"
+    for leaf in leaves:
+        edges.append((leaf, "END"))
+
+    # 6) Build the NetworkX graph
+    G = nx.DiGraph()
+    G.add_edges_from(edges)
+    return G
+
+
+def process_elements(elements, prev_ids, edges, node_optional, optional_context=False):
+    """
+    elements: parsed list where each item is:
+        - string (enzyme ID)
+        - list (bracketed alternatives; each alternative is a list of elements)
+        - ("OPTIONAL", list_of_sequences) where each sequence is a list of elements
+    prev_ids: list of upstream node ids
+    edges: list to append (src, dst) tuples
+    node_optional: dict mapping node_id -> bool (is_optional)
+    optional_context: boolean, True if current call is within an optional chain
+
+    Returns: list of leaf node ids after processing elements
+    """
+    current_prev = prev_ids
+
+    for elem in elements:
+        # Plain ID
+        if isinstance(elem, str):
+            # mark node optional if any time this element is seen under optional_context
+            node_optional[elem] = node_optional.get(elem, False) or optional_context
+            for p in current_prev:
+                edges.append((p, elem))
+            current_prev = [elem]
+
+        # Bracketed alternatives (list)
+        elif isinstance(elem, list):
+            all_leaves = []
+            for alt_seq in elem:
+                # alt_seq processed with the same optional_context as the container
+                alt_leaves = process_elements(alt_seq, current_prev, edges, node_optional, optional_context=optional_context)
+                all_leaves.extend(alt_leaves)
+            current_prev = all_leaves
+
+        # OPTIONAL tuple
+        else:
+            tag, seqs = elem
+            if tag != "OPTIONAL":
+                raise ValueError(f"Unexpected element: {elem!r}")
+
+            # skipping the optional chain: leaves_skip = current_prev
+            leaves_skip = list(current_prev)
+
+            # taking the optional chain: mark everything inside as optional_context=True
+            leaves_taken = []
+            for seq in seqs:
+                taken_leaves = process_elements(seq, current_prev, edges, node_optional, optional_context=True)
+                leaves_taken.extend(taken_leaves)
+
+            # union skip + taken
+            current_prev = leaves_skip + leaves_taken
+
+    return current_prev
+
+
+def build_pathway_graph(pathway_str):
+    """
+    Parse pathway_str and build graph and node optional labels.
+
+    Returns: (G, edges, node_optional)
+    - G: networkx.DiGraph with node attribute 'is_optional' set for each node
+    - edges: list of (src, dst) tuples
+    - node_optional: dict mapping node -> bool
+    """
+    # 1) parse and normalize optional groups
+    parsed, _ = parse_sequence(pathway_str, 0, end_chars=[])
+    parsed_rec = recursive_merge(parsed)
+    parsed_clean = merge_optional_elements(parsed_rec)
+
+    # 2) build edges while collecting node optional flags
+    edges = []
+    node_optional = {}
+
+    node_optional["BEGIN"] = False
+    leaves = process_elements(parsed_clean, ["BEGIN"], edges, node_optional, optional_context=False)
+
+    # mark final leaves' optional flags if they were in optional_context already (process_elements handled it)
+    # connect leaves to END
+    for leaf in leaves:
+        edges.append((leaf, "END"))
+
+    node_optional["END"] = False
+
+    # 3) create graph and set node attributes
+    G = nx.DiGraph()
+    G.add_edges_from(edges)
+
+    # Ensure all nodes appear in node_optional map (if a node appears but wasn't assigned yet)
+    for n in G.nodes():
+        if n not in node_optional:
+            node_optional[n] = False
+
+    # Assign attribute to each node
+    for n, is_opt in node_optional.items():
+        if n in G:
+            G.nodes[n]['is_optional'] = bool(is_opt)
+    return G
+
+################################# Shortest path search
+
+def find_shortest_path_through(graph: nx.DiGraph, target_nodes: List[str], start='BEGIN', end='END') -> List[str]:
+    # Build path segments
+    full_path = []
+    current = start
+    for target in target_nodes:
+        segment = nx.shortest_path(graph, current, target)
+        if full_path:
+            full_path += segment[1:]  # Avoid repeating current node
+        else:
+            full_path += segment
+        current = target
+    # Path from last target to END
+    segment = nx.shortest_path(graph, current, end)
+    full_path += segment[1:]
+    return full_path
+
+
+def process_all_kegg_modules_to_pathways(kegg_dict: Dict[str, List[str]]) -> Dict[str, nx.DiGraph]:
+    kegg_pathways = dict()
+    for k_id, pathway_kegg in kegg_dict.items():
+        pathway_str = pathway_kegg[0]
+        print(k_id, pathway_str)
+        pathway_graph = build_pathway_graph(pathway_str)
+        kegg_pathways[k_id] = pathway_graph
+    return kegg_pathways
+
+def find_in_which_pathway(target_gene_list: List[str], kegg_pathways: Dict[str, nx.DiGraph]) -> Dict[str, List[str]]:
+    target_genes = set(target_gene_list)
+    pathways_with_target_genes = dict()
+    for gene in target_genes:
+        for k_id, pathway_g in kegg_pathways.items():
+            if pathway_g.has_node(gene):
+                if k_id in pathways_with_target_genes:
+                    pathways_with_target_genes[k_id] += [gene]
+                else:
+                    pathways_with_target_genes[k_id] = [gene]
+    return pathways_with_target_genes
+
+
+def list_optional_nodes(pathway_graph: nx.DiGraph, node_list: List[str]):
+    optional_nodes = []
+    for node_name in node_list:
+        is_optional = pathway_graph.nodes[node_name]["is_optional"]
+        if is_optional:
+            optional_nodes.append(node_name)
+    return optional_nodes
+
+
+def compute_completion(pathway_graph: nx.DiGraph, target_genes: List[str]) -> Dict[str, Union[str, List[str], List[str]]]:
+    shortest_path_through_nodes = find_shortest_path_through(pathway_graph, target_genes)
+    full_pathway_li = shortest_path_through_nodes[1:-1]
+    completion = round(len(target_genes) / len(full_pathway_li),3)
+    optional_genes = list_optional_nodes(pathway_graph, shortest_path_through_nodes)
+    res = {"completion": completion, "present_genes": target_genes, "pathway": full_pathway_li, "optional": optional_genes}
+    return res
+
+
+def sort_nodes(in_graph: nx.DiGraph, in_nodes: List[str]) -> List[str]:
+    #sorted_g = list(nx.topological_sort(in_graph))
+    sorted_g = list(in_graph.nodes)
+    node_ids = [sorted_g.index(node) for node in in_nodes]
+    sorted_nodes = [node for n_id, node in sorted(zip(node_ids, in_nodes))]
+    return sorted_nodes
+
+
+def compute_completion_of_all_pathways(kegg_pathways: Dict[str, nx.DiGraph], pathways_with_target_genes: Dict[str, List[str]]) -> Dict[str, Union[str, List[str], List[str]]]:
+    completion_res = dict()
+    for k_id, pathway_g in kegg_pathways.items():
+        if k_id in pathways_with_target_genes:
+            print(k_id, pathways_with_target_genes[k_id])
+            target_genes = sort_nodes(pathway_g, pathways_with_target_genes[k_id])
+            completion_info = compute_completion(pathway_g, target_genes)
+            completion_res[k_id] = completion_info
+        else:
+            completion_res[k_id] = {"completion": 0.0, "present_genes": [], "pathway": [], "optional": []}
+    return completion_res
+
+
+
+#################################
+
+
 def gen_line_reader(file_path):
     for line in open(file_path, "r"):
         yield line
-        
-def KEGG_module_reader(KEGG_module_file_path):
+
+
+def KEGG_module_reader(KEGG_module_file_path) -> Dict[str, str]:
     """
+    Output a dict of module_id+name: str kos
     Reads a database of KEGG module definitions and outputs a dictionary
     where the key is "Modulenumber Modulename" and the value is the definition.
-    
+
     Since some modules have multiple definitions, the value is given as a list.
     """
     KEGG_dict = {}
@@ -48,28 +502,10 @@ def KEGG_module_reader(KEGG_module_file_path):
             KEGG_dict[name].append(line.partition("Definition:")[2].strip())
     return KEGG_dict
 
-def output_tsv(outputname, output_dict, minimum_completion):
+
+def eggnog_parser(eggnog_path) -> List[str]:
     """
-    Outputs a tsv containing per column the module name, the highest completion 
-    found for the module (as a fraction 0-1), and the k numbers of the genes that 
-    comprise this highest completion.
-    """
-    out = open(outputname, "w")
-    out.write("#Entry\tName\tHighest_completion\tMost_complete_pathway\tNon-essential_genes_found\n")
-    for modulename in output_dict:
-        if float(output_dict[modulename][0]) >= float(minimum_completion):
-            out.write("{}\t{}\t{}\t".format(modulename.partition(" ")[0], modulename.partition(" ")[2],output_dict[modulename][0]))
-            out.write(",".join(output_dict[modulename][1]))
-            out.write("\t")
-            if len(output_dict[modulename][2]) > 0:
-                out.write(",".join(output_dict[modulename][2]))
-            else:
-                out.write("None")
-            out.write("\n")
-    out.close()
-    
-def eggnog_parser(eggnog_path):
-    """
+    Output list of ids KO ids
     Parses an eggnog.annotations output file. Returns a list of all the found k terms.
     """
     out_list = []
@@ -77,354 +513,75 @@ def eggnog_parser(eggnog_path):
         if line.startswith("#"):
             continue
         ko = line.split("\t")[11]
-        #!!!!A comma means there is multiple ko terms. BLASTkoala appears to only save the first one.
-        #This script will include both ko terms
+        # !!!!A comma means there is multiple ko terms. BLASTkoala appears to only save the first one.
+        # This script will include both ko terms
         if ko == "-":
             ko = ""
-        elif "," in ko: 
+        elif "," in ko:
             for i in ko.split(","):
                 i = i.replace("ko:", "")
-                out_list.append(i)             
+                out_list.append(i)
         else:
             ko = ko.replace("ko:", "")
             out_list.append(ko)
     return out_list
-    
-###################
-#Functions for parsing KEGG definitions
-###################  
 
-#Wrapper for KEGG definition parsing
-def retrieve_all_possible_pathways(KEGG_definition):
-    """
-    Finds the different possible combinations of genes that complete the module in the KEGG_definition
-    """
-    final_list = [[]]
-    #The "for reaction" structure is required since sometimes KEGG gives 2 definitions for the same module. 
-    #It seems these are merging pathways required to for example generate substrates. Therefore, they will be treated as prerequisites for completion.
-    for reaction in KEGG_definition:
-        #Pluses and dashes are functionally the same
-        if " " in reaction:
-            reaction = reaction.replace(" ", "+")
-        #Minuses denote non-essential genes. They will be considered here for calculating the gene combinations
-        #but their absence will not count as pathway incompletion later. 
-        if "-" in reaction:
-            reaction = reaction.replace("-", "+")
-        #To deal with nested brackets, first find the possible combination WITHIN each bracket, so these
-        #can then be substituted into the appropriate brackets when parsing the complete definitions.
-        #These possible combinations are put into poss_dict
-        poss_dict = {}
-        if "(" in reaction:
-            #If there is brackets in the definition, first find the possibilities contained therein.
-            poss_dict = find_bracket_possibilities(reaction)
-        #Parse the different pathways
-        poss_list = parse_possibilities(reaction, poss_dict)
-        temp_list = []
-        for option in final_list:
-            for poss in poss_list:
-                new_option = option[:] + poss
-                temp_list.append(new_option)
-        final_list = temp_list[:]   
-    return final_list
 
-#Wrapper for parsing (nested) brackets
-def find_bracket_possibilities(KEGG_definition):
-    """
-    Finds all (nested) brackets, and iterates through each level of brackets to find the possibilties.
-    Returns a completed dictionary of possibilities for the lowest level of brackets, which can be used to 
-    analyze the KEGG_definition
-    """
-    #Finds the brackets and their level of nestedness
-    brackets_list = find_bracket_contents(KEGG_definition)
-    #Find the highest level of nested brackets
-    highest = 0
-    for element in brackets_list:
-        if element[0] > highest:
-            highest = element[0]
-    poss_dict = {}
-    #Iterate over each bracket level
-    #For each bracket, make a list of lists representing each possible option and store them in the poss_dict
-    for level in reversed(range(highest+1)):
-        #iterate over each bracket pair in the KEGG definition
-        for bracket_pair in brackets_list:
-            #starting at the highest level of brackets, start searching for options
-            if bracket_pair[0] == level:
-                poss_dict["({})".format(bracket_pair[1])] = parse_possibilities(bracket_pair[1],poss_dict)
-    return poss_dict
-
-#Main parsing function    
-def parse_possibilities(string, poss_dict):
-    """
-    Returns a list of lists, representing the options possible in the string
-    according to the KEGG definitions. 
-    
-    Utilizes the poss_dict to resolve brackets
-    """
-    #To prevent parsing mistakes, replace brackets with empty brackets.
-    #The removed contents of the brackets are present in the bracket_list,
-    #in the order that they occur in the string
-    bracket_list = []
-    if "(" in string:
-        string, bracket_list  = empty_brackets(string)
-    #If the string has commas in it, it is a bracketed substring. Comma's will take priority
-    #over plusses and spaces, and will thus be considered first    
-    if "," in string:
-        option_list = []
-        for alternative in string.split(","):
-            if alternative == "":
-                continue
-            elif "+" in alternative:
-                poss_list = parse_pluses(alternative, bracket_list, poss_dict)
-                #Since considered parts are separated by commas, each combination in the poss_list here 
-                #denotes a branching path ALTERNATIVE to the other parts of the string being parsed here.
-                #Therefore, add each possibility as a separate one to the option_list
-                for poss in poss_list:
-                    option_list.append(poss)     
-            elif alternative == "()":
-                #Again, since this is in a comma string, each possibility is an entirely different option
-                bracket_possibilities = parse_bracket_possibilities(bracket_list.pop(0), poss_dict)
-                for poss in bracket_possibilities:
-                    option_list.append(poss)     
-            #If there is only spaces, simply add the genes to existing options
-            else:
-                option_list.append([alternative])
-    #If there is no commas in the string, then it is only comprised of additions.
-    #simply add each addition, and add the options contained in each bracket
-    else:
-        option_list = [[]]
-        for addition in string.split("+"):
-            if addition == "":
-                continue
-            elif addition == "()":
-                poss_list = parse_bracket_possibilities(bracket_list.pop(0), poss_dict)
-                temp_list = []
-                for poss in poss_list:
-                    for option in option_list:
-                        new_option = option[:]
-                        for item in poss:
-                            new_option.append(item)   
-                        temp_list.append(new_option)
-                option_list = temp_list[:]        
-            #If there is only spaces, simply add the genes to existing options
-            else:
-                if len(option_list) == 0:
-                    option_list = []
-                for option in option_list:
-                    option.append(addition)
-    return option_list
-
-#Secondary functions    
-def parse_pluses(plus_string, bracket_list, poss_dict):
-    """
-    Parses a plus-containing substring found in brackets, or between 
-    comma's. 
-    
-    Returns a list of lists where each nested list represents a possible combination
-    of genes following the KEGG definition
-    """
-    out_list = [[]]
-    for part in plus_string.split("+"):
-        #If a part of the pluses are brackets, remove them and add the possibilities contained
-        if part == "()":
-            bracket_possibilities = parse_bracket_possibilities(bracket_list.pop(0), poss_dict)
-            temp_list = []
-            for poss in bracket_possibilities:
-                for option in out_list:
-                    new_option = option[:]
-                    for item in poss:
-                        new_option.append(item)   
-                    temp_list.append(new_option)
-            out_list = temp_list[:]        
-        #If there is no brackets, simply add each part of the chain of pluses as a an addition to the existing combinations
+def convert_completion_dict_to_df(completion_dict):
+    graph_res = dict()
+    for k, v in completion_dict.items():
+        if v["completion"] == 0.0:
+            continue
         else:
-            temp_list = []
-            for option in out_list:
-                new_option = option[:]
-                new_option.append(part)   
-                temp_list.append(new_option)
-            out_list = temp_list[:]   
-    return out_list
+            new_k = k.split(" ")[0]
+            present_genes_str = ",".join(v["present_genes"])
+            pathway_str = ",".join(v["pathway"])
+            optional_genes_str = ",".join(v["optional"])
+            new_v_dict = {"completion": v["completion"], "present_genes": present_genes_str, "description": k,
+                          "pathway": pathway_str, "optional_genes": optional_genes_str}
+            graph_res[new_k] = new_v_dict
+    completion_df = pd.DataFrame.from_dict(graph_res, orient="index")
+    completion_df.index.names = ["module"]
+    return completion_df
 
-def find_bracket_pairs(string):
-    """
-    Returns a dictionary for each bracket pair, where the first bracket
-    is the dict key, and the second is the value
-    """
-    match_bracket_index_dict = {}
-    stack_list = []
-    for index, char in enumerate(string):
-        if char == "(":
-            stack_list.append(index)
-        elif char == ")":
-            match_bracket_index_dict[stack_list.pop()] = index
-    return dict(sorted(match_bracket_index_dict.items()))
-    #return match_bracket_index_dict
 
-def find_bracket_contents(string):
-    """
-    returns a list of tuples for each bracket pair in the string.
-    Each tuple contains (bracket nestedness level, bracket contents).
-    """
-    stack = []
-    bracket_list = []
-    out_dict = {}
-    for index, char in enumerate(string):
-        if char == '(':
-            stack.append(index)
-        elif char == ')' and stack:
-            start = stack.pop()
-            bracket_list.append((len(stack), string[start + 1: index]))
-    return bracket_list
+def parse_args() -> Tuple[Path, Path, Path]:
+    parser = argparse.ArgumentParser(description="Estimate completion of the modules")
+    parser.add_argument("-m", help="Path to the module file", required=True, dest="mod_path", type=Path)
+    parser.add_argument("-e", help="Path to the eggnog file", required=True, dest="eggnogfile_path", type=Path)
+    parser.add_argument("-o", help="Path to the output tsv table", required=True, dest="out_path", type=Path)
+    args = parser.parse_args()
+    return args.mod_path, args.eggnogfile_path, args.out_path
 
-def parse_bracket_possibilities(bracket_string, poss_dict):
-    """
-    If brackets are found, tries to find them in the poss_dict to give 
-    the options they represent. The options are not added to an option list
-    since from the brackets itself its impossible to tell if it is an addition or
-    a branch.
-    """
-    if bracket_string in poss_dict:
-        return poss_dict[bracket_string]
-    else:
-        print("Error, could not find {} in poss_dict".format(bracket_string))
 
-def empty_brackets(string):
-    """
-    Returns the provided string, but with the brackets replaced with empty brackets. In addition, 
-    returns a list containing the removed bracketed contents, so these can be retrieved later from 
-    the poss_dict
-    
-    Only considers the lowest level of bracket present, assuming nested brackets are already included in 
-    its possibilities
-    """
-    out_list = []
-    #Make dictionary of bracket pairs
-    bracket_dict = find_bracket_pairs(string)
-    #Only consider the lowest level of brackets, ignoring any nested ones
-    lowest_list = []
-    for key in bracket_dict:
-        lower_exists = False
-        for key2 in bracket_dict:
-            if key > key2 and bracket_dict[key] < bracket_dict[key2]:
-                lower_exists = True
-        if not lower_exists:
-            lowest_list.append(key)
-    #Store the lowest brackets in the out_list, so they can be called later
-    for key in lowest_list:
-        out_list.append(string[key:bracket_dict[key]+1])
-    #Replace the lowest level brackets with empty brackets
-    for key in reversed(lowest_list):
-        string = string.replace(string[key:bracket_dict[key]+1], "()")
-    return string, out_list
+def resolve_rel_path_list(path_list: List[Path]):
+    res_paths = []
+    for p in path_list:
+        res_paths.append(p.resolve())
+    return res_paths
 
-def non_essential_finder(KEGG_definition):
-    """
-    In KEGG definitions, minuses denote non-essential genes. These will be parsed here, and returned as a list.
-    """
-    out_list = []
-    if "-" in KEGG_definition:
-        #Find all minuses in the string
-        i = 0
-        minus_indices = []
-        while i < len(KEGG_definition):
-            if KEGG_definition[i] == "-":
-                minus_indices.append(i)
-            i+= 1
-        #Find the genes after the minus, counting multiple if they are bracketed. 
-        for i in minus_indices:
-            string = KEGG_definition[i+1:]
-            #If the minus is followed by brackets, inside are all non-essential genes
-            if string.startswith("("):
-                string = string.partition(")")[0].strip("(")
-                splt = string.split(",")
-                for comma_split in splt:
-                    for plus_split in comma_split.split("+"):
-                        out_list.append(plus_split)
-            #Several instances of double minuses exist, such as M00814, M00840 or M00890.
-            #Their meaning is unclear, but they do not seem to denote non-essential genes
-            elif string.startswith("-"):
-                continue
-            #If it is not followed by brackets or minus, simply take the gene following the minus
-            else:
-                string = string.partition("+")[0].partition(",")[0].partition(" ")[0].partition("(")[0].partition(")")[0].partition("-")[0]
-                if string.strip():
-                    out_list.append(string)
-    return out_list
-    
-###################
-#Analysis wrapper function 
-###################   
 
-def pathway_completion_checker(KEGG_dict, kterms_list):
-    """
-    Uses several functions to find all potential combinations of genes that complete a KEGG module.
-    Then find which of those combinations is most complete for the given genes in kterms_list.
-    
-    Returns a dictionary with the KEGG module name as key, and a tuple as value. The tuple
-    contains the highest completion value found (as a 0-1 float),the combination of genes
-    amounting to that completion as a list, and a list genes missing from the pathway that were still
-    included during completion calculation because they were non-essential: (0.5, [gene1,gene2,gene3], [gene2])
-    """
-    out_dict = {}
-    #Make a dictionary containing lists of all non-essential genes per module
-    non_essential_dict = {}
-    for module_name in KEGG_dict:
-        for reaction in KEGG_dict[module_name]:
-            #Since there can be multiple reactions, check if the dictionary entry already exists, if so append to it
-            if module_name in non_essential_dict:
-                for i in non_essential_finder(reaction):
-                    non_essential_dict[module_name].append(i)
-            else:
-                non_essential_dict[module_name] = non_essential_finder(reaction)
-    #Make a dictionary containing all the possible combinations of genes to complete the pathway
-    for module_name in KEGG_dict:
-        possible_combinations = retrieve_all_possible_pathways(KEGG_dict[module_name])
-        if possible_combinations != [[]]:
-            KEGG_dict[module_name] = possible_combinations
-    #Iterate over the dictionary to check every pathway
-    for module_name in KEGG_dict:
-        #Iterate over each possible combinations, to check which is most complete
-        highest_completion = -1
-        best_pathway = []
-        non_essential_found = []
-        for combination in KEGG_dict[module_name]:
-            gene_is_present = []
-            #Check for each gene in the combination if it non-essential and if it is present in the tested organism
-            for gene in combination:
-                #If the gene is non-essential it will not be counted towards the completion of the combination
-                #While not factored into the calculation, any non-essential gene associated with the module will be mentioned in the output if it was found to be present in the organism
-                if gene in non_essential_dict[module_name]:
-                    if gene in kterms_list and gene not in non_essential_found:
-                        non_essential_found.append(gene)
-                else: 
-                    if gene in kterms_list:
-                        gene_is_present.append(gene)
-            #To accurately calculate the completion of essential genes, non-essential genes are removed from the combination
-            for gene in non_essential_dict[module_name]:
-                if gene in combination:
-                    combination.remove(gene)
-            number_of_genes = len(combination)
-            completion = len(gene_is_present)/number_of_genes
-            if completion > highest_completion:
-                highest_completion = completion
-                best_pathway = gene_is_present[:]
-                out_dict[module_name] = (highest_completion, best_pathway, non_essential_found)
-    return out_dict
-    
-####################################################################
-#MAIN
-####################################################################    
+def main():
+    mod_path, eggnogfile_path, out_path = parse_args()
+    mod_path, eggnogfile_path, out_path = resolve_rel_path_list([mod_path, eggnogfile_path, out_path])
+    print(f"Parsing the module list from {mod_path}")
+    kegg_modules = KEGG_module_reader(mod_path)
+    kegg_pathways = process_all_kegg_modules_to_pathways(kegg_modules)
+
+    print(f"Parsing the eggnog file {eggnogfile_path}")
+    eggnog_list = eggnog_parser(eggnogfile_path)
+
+    print("Estimating completion")
+    pathways_with_target_genes = find_in_which_pathway(eggnog_list, kegg_pathways)
+    completion_of_all_pathways = compute_completion_of_all_pathways(kegg_pathways, pathways_with_target_genes)
+
+    print("Writing to a table")
+    completion_df = convert_completion_dict_to_df(completion_of_all_pathways)
+
+    print(f"Saving results to {out_path}")
+    completion_df.to_csv(out_path, sep="\t", index=True)
+    print("Done")
+
+
 if __name__ == "__main__":
-    #Obtain inputs
-    eggnog_input = sys.argv[1]
-    outprefix= sys.argv[2]
-    KEGG_db = sys.argv[3]
-    #Read in the KEGG module DB
-    KEGG_dict = KEGG_module_reader(KEGG_db)
-    #Parse out the K terms from eggnog output_name
-    kterms_list = eggnog_parser(eggnog_input)
-    #Check per pathway how complete it is based on the eggnog K terms
-    completion_dict = pathway_completion_checker(KEGG_dict, kterms_list)
-    #Output the found completion
-    output_tsv(outprefix + "_KEGG_completion.tsv",completion_dict, 0)
-    output_tsv(outprefix + "_KEGG_complete_modules.tsv",completion_dict, 1)
+    main()
