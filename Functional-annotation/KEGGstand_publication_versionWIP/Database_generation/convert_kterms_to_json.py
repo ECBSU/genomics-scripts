@@ -82,6 +82,9 @@ def convert_k_terms_lines_to_list_of_dict(lines) -> List[Dict[str, Union[str, di
             elif line.startswith("PATHWAY"):
                 pathway_started = True
                 this_entry_pathway = [line[read_this_part].strip()]
+                if re.match(r"^\S", next_line):
+                    pathway_started = False
+                    this_entry["PATHWAY"] = this_entry_pathway
             elif pathway_started:
                 pathway_info = line[read_this_part].strip()
                 this_entry_pathway.append(pathway_info)
@@ -92,6 +95,9 @@ def convert_k_terms_lines_to_list_of_dict(lines) -> List[Dict[str, Union[str, di
             elif line.startswith("REACTION"):
                 reaction_started = True
                 this_entry_reaction = [line[read_this_part].strip()]
+                if re.match(r"^\S", next_line):
+                    reaction_started = False
+                    this_entry["REACTION"] = this_entry_reaction
             elif reaction_started:
                 reaction_info = line[read_this_part].strip()
                 this_entry_reaction.append(reaction_info)
@@ -103,6 +109,10 @@ def convert_k_terms_lines_to_list_of_dict(lines) -> List[Dict[str, Union[str, di
                 root = Node("root")
                 brite_started = True
                 brite_lines = [line[read_this_part]]
+                if re.match(r"^\S", next_line):
+                    brite_started = False
+                    root.add_children([Node(bl) for bl in brite_lines])
+                    this_entry["BRITE"] = root.as_dict()["root"]
             elif brite_started:
                 line_info_with_spaces = line[read_this_part]
                 brite_lines.append(line_info_with_spaces)
