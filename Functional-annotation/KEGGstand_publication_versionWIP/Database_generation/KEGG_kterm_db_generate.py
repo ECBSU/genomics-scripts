@@ -14,6 +14,7 @@ from Bio.KEGG import REST
 import os
 import time
 import argparse
+import sys
 
 ###################
 #Functions

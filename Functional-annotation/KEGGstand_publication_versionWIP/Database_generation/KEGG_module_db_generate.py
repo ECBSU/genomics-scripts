@@ -14,6 +14,7 @@ from Bio.KEGG import REST
 import sys
 import os
 import time
+import argparse
 
 ##############
 #Functions
@@ -68,7 +69,7 @@ if __name__ == "__main__":
             if mod in module_list:
                 module_list.remove(mod)
             else:
-                print("error, found processed module that is not in list: {}".format(term))
+                print("error, found processed module that is not in list: {}".format(mod))
                 
     #For any undownloaded terms, download them and append them to the database
     for mod in module_list:
