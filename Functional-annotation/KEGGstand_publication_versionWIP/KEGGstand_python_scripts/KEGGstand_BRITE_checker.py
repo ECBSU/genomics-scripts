@@ -9,181 +9,25 @@ Usage: (python) KEGGstand_BRITE_checker.py input.emapper.annotations output_file
 Output:
 Writes a tab-delimited file that lists each KEGG category along with its subcategories. After
 a tab, the number of genes found for the (sub)category is given, along with the total number of
-genes known for this category. 
+genes known for this category.
 """
+from typing import List, Tuple, Set, Dict
+import re
+import json
+from pathlib import Path
+import argparse
+import networkx as nx
+import pandas as pd
 
-###################
-#Import statements
-################### 
-import sys
-import os
-
-###################
-#Functions
-################### 
 
 def gen_line_reader(file_path):
     """
-    Generator function that allows reading a text file line 
+    Generator function that allows reading a text file line
     by line, without reading the full file into memory
     """
     for line in open(file_path, "r"):
         yield line
 
-def leading_space_counter(string):
-    """
-    Counts the number of leading spaces in the string. Returns
-    this number as a integer
-    """
-    spaces = 0
-    for char in string:
-        if char == " ":
-            spaces += 1
-        else:
-            break
-    return spaces
-    
-def parse_KEGG_kterm_db(k_term_db):
-    """
-    Reads provided file and creates a list of all KEGG entries
-    within. 
-    """
-    #Initiate variables
-    K_term_dict = {}
-    hierarchy_list = []
-    entry = False
-    read = False
-    temp_list = []
-    k_term_temp_list = []
-    #Iterate over each line in the database
-    for line in gen_line_reader(k_term_db):
-        #Parse out the K term from the entry line
-        if line.startswith("ENTRY"):
-            entry = line.split()[1]
-            read = False
-            if temp_list != []:
-                hierarchy_list.append(temp_list)
-                temp_list = []
-                k_term_temp_list = []
-        #Only read once the read variable is true, which happens only in the BRITE section
-        if read:
-            #Ignore the lines that starts with the entry itself
-            if line.strip().startswith(entry):
-                continue
-            leading_spaces = leading_space_counter(line)
-            KEGG_cat = line.strip()
-            #Enzyme category has the fewest leading spaces, making it seem like an all-encompassing category during parsing. 
-            #This can be resolved by adding an additional leading space
-            if line.strip().startswith("0"):
-                leading_spaces = leading_spaces - 1
-            #Per entry, create a list of tuples (temp_list) that is added to the "hierarchy_list". Each tuple
-            #will be (number of leading spaces, KEGG category). This information will be used downstream
-            #to reconstruct the KEGG hierarchy
-            temp_list.append((leading_spaces, line.strip()))
-            #maintain a list of previous overarching categories so that kterms will be stored in the dictionary accounting for 
-            #category hierarchy. This is necessary for categories with identical names, but different hierarchies. (eg small subunit in eukaryote and prokaryote ribosomes)
-            new_list = k_term_temp_list[:]
-            for cat in k_term_temp_list:
-                if leading_spaces <= cat[0]:
-                    new_list.remove(cat)
-            k_term_temp_list = new_list[:]
-            #Add the current item to the previous cat list
-            k_term_temp_list.append((leading_spaces, KEGG_cat))
-            #Make a temp list of the previous and current category, used to find the corresponding kterms from the dictionary
-            new_list = []
-            for cat in k_term_temp_list:
-                new_list.append(cat[1])
-            if tuple(new_list) not in K_term_dict:
-                K_term_dict[tuple(new_list)] = [entry]
-            else:
-                K_term_dict[tuple(new_list)].append(entry)
-        if line.startswith("BRITE"):
-            read = True
-    
-    if temp_list != []:
-        hierarchy_list.append(temp_list)
-    return K_term_dict, hierarchy_list
-
-
-def branching_dict_helper(in_dict, in_list):
-    """
-    Helper function to create an empty branching dictionary, used to store branching hierarchy. 
-    
-    Note:
-    I am aware there exist more elegant recursive solutions. However, I do not fully understand their logic,
-    and thus chose to instead implement a more direct solution which will function exactly as I expect. At the time 
-    of writing (18-10-24), the highest level of nestedness in the KEGG entries is 5. This function can deal with 
-    a level of nestedness of 10, which is unlikely to ever occur. Therefore, while this solution is sub-optimal, 
-    it should be quite robust. 
-    """
-    i = 0
-    while i < len(in_list): #Highest level of nestedness is 5, so will do 10 levels to be sure
-        if i == 0 and in_list[i] not in in_dict:
-            in_dict[in_list[i]] = {}
-        elif i == 1 and in_list[i] not in in_dict[in_list[0]]:
-            in_dict[in_list[0]][in_list[i]] = {}
-        elif i == 2 and in_list[i] not in in_dict[in_list[0]][in_list[1]]:
-            in_dict[in_list[0]][in_list[1]][in_list[i]] = {}
-        elif i == 3 and in_list[i] not in in_dict[in_list[0]][in_list[1]][in_list[2]]:
-            in_dict[in_list[0]][in_list[1]][in_list[2]][in_list[i]] = {}
-        elif i == 4 and in_list[i] not in in_dict[in_list[0]][in_list[1]][in_list[2]][in_list[3]]:
-            in_dict[in_list[0]][in_list[1]][in_list[2]][in_list[3]][in_list[i]] = {}
-        elif i == 5 and in_list[i] not in in_dict[in_list[0]][in_list[1]][in_list[2]][in_list[3]][in_list[4]]:
-            in_dict[in_list[0]][in_list[1]][in_list[2]][in_list[3]][in_list[4]][in_list[i]] = {}
-        elif i == 6 and in_list[i] not in in_dict[in_list[0]][in_list[1]][in_list[2]][in_list[3]][in_list[4]][in_list[5]]:
-            in_dict[in_list[0]][in_list[1]][in_list[2]][in_list[3]][in_list[4]][in_list[5]][in_list[i]] = {}
-        elif i == 7 and in_list[i] not in in_dict[in_list[0]][in_list[1]][in_list[2]][in_list[3]][in_list[4]][in_list[5]][in_list[6]]:
-            in_dict[in_list[0]][in_list[1]][in_list[2]][in_list[3]][in_list[4]][in_list[5]][in_list[6]][in_list[i]] = {}
-        elif i == 8 and in_list[i] not in in_dict[in_list[0]][in_list[1]][in_list[2]][in_list[3]][in_list[4]][in_list[5]][in_list[6]][in_list[7]]:
-            in_dict[in_list[0]][in_list[1]][in_list[2]][in_list[3]][in_list[4]][in_list[5]][in_list[6]][in_list[7]][in_list[i]] = {}
-        elif i == 9 and in_list[i] not in in_dict[in_list[0]][in_list[1]][in_list[2]][in_list[3]][in_list[4]][in_list[5]][in_list[6]][in_list[7]][in_list[8]]:
-            in_dict[in_list[0]][in_list[1]][in_list[2]][in_list[3]][in_list[4]][in_list[5]][in_list[6]][in_list[7]][in_list[8]][in_list[i]] = {}
-        elif i == 10 and in_list[i] not in in_dict[in_list[0]][in_list[1]][in_list[2]][in_list[3]][in_list[4]][in_list[5]][in_list[6]][in_list[7]][in_list[8]][in_list[9]]:
-            in_dict[in_list[0]][in_list[1]][in_list[2]][in_list[3]][in_list[4]][in_list[5]][in_list[6]][in_list[7]][in_list[8]][in_list[9]][in_list[i]] = {}
-        i += 1
-    return in_dict
-    
-def reconstruct_KEGG_hierarchy(hierarchy_list):
-    """
-    Reconstructs the hierarchy list generated by "parse_KEGG_kterm_db" into a branching dictionary 
-    correctly representing the hierarchical structures of categories and subcategories. 
-    
-    The output is a dictionary with multiple levels of dictionaries within dictionary. The key of each dictionary
-    represents a KEGG category while the values represent the subcategories. 
-    """
-    hierarchy_dict = {}
-    #Iterate over each item in the hierarchy list, which each represent the hierarchical categories found for a 
-    #k term
-    for entry in hierarchy_list:
-        #Make temporary list to store potential nestedness
-        temp_list = []
-        for tup in entry:
-            if temp_list != []:
-                #If the number of leading spaces is equal or lesser than previous categories, than this is a new nested group
-                #It'll get a new entry at the lowest level of nestedness
-                if tup[0] <= temp_list[0][0]:
-                    temp_list = []
-                    if tup not in hierarchy_dict:
-                        hierarchy_dict[tup] = {}
-                    temp_list.append(tup)
-                #If the number of leading spaces is not equal or lesser than all previous categories, then it is part of the nested
-                #group of previous tuples. Check at which level of nestedness by comparing leading spaces against all tuples in the nested list.
-                #A new list is made to replace temp_list, since all nested tuples below the relevant level can be discarded.
-                else:
-                    new_temp_list = []
-                    for item in temp_list:
-                        if item[0] < tup[0]:
-                            new_temp_list.append(item)
-                    temp_list = new_temp_list[:]
-                    #Add the current category to the end of the temp_list, which is it's correct level of nestedness
-                    temp_list.append(tup)
-                    #Make a list of just the category names (without the number of leading spaces) and add them to the dictionary
-                    hierarchy_dict = branching_dict_helper(hierarchy_dict, temp_list)
-            else:
-                if tup not in hierarchy_dict:
-                    hierarchy_dict[tup] = {}
-                temp_list.append(tup)
-    return hierarchy_dict
 
 def eggnog_parser(eggnog_path):
     """
@@ -198,86 +42,227 @@ def eggnog_parser(eggnog_path):
         #This script will include both ko terms
         if ko == "-":
             ko = ""
-        elif "," in ko: 
+        elif "," in ko:
             for i in ko.split(","):
                 i = i.replace("ko:", "")
-                out_list.append(i)             
+                out_list.append(i)
         else:
             ko = ko.replace("ko:", "")
             out_list.append(ko)
-    return out_list   
-
-def recursive_dict_iteration(dictionary):
-    """
-    Iterates over a dictionary containing multiple levels
-    of nested dictionaries. 
-    
-    Returns a list in which the contained values are the keys and values in the dictionaries, in the 
-    encountered order. This order is the same as what is found left to right if the dictionary was printed. 
-    """
-    out_list = []
-    for key, value in dictionary.items():
-        out_list.append(key)
-        if isinstance(value, dict):
-            for item in recursive_dict_iteration(value):
-                out_list.append(item)
     return out_list
-    
-def output_hierarchical_gene_count(hierarchy_dict, K_term_dict, K_term_present, outfile):
-    """
-    Converts the hierarchical dictionary of categories into an ordered list. Per category,
-    finds the associated genes from the K_term_dict, and finds which ones of these are present 
-    using the K_term_present list. Outputs the number of found genes per category to the outfile.
-    """
-    out = open(outfile, "w")
-    #Iterate over the hierarchical dictionary to find the contained items
-    #in the appropriate hierarchical order
-    hierarchical_tup_list = recursive_dict_iteration(hierarchy_dict)
-    #Iterate over this ordered list of categories, checking the associated genes,
-    #and whether these genes are present in the provided EggNOG output. Then write 
-    #this per category
-    previous_cats = []
-    for item in hierarchical_tup_list:
-        leading_spaces = item[0]
-        KEGG_cat = item[1]
-        leading_spaces = leading_spaces - 12
-        #Keep track of previous categories to be able to call the kterm dict in an hierarchical fashion.
-        #This is critical, since otherwise categories with identical names but different hierarchy (eg small subunit in eukaryote and prokaryote ribosomes)
-        #will be counted as the same. 
-        #First remove any category in the previous category list that is not an overarching category
-        new_list = previous_cats[:]
-        for cat in previous_cats:
-            if leading_spaces <= cat[0]:
-                new_list.remove(cat)
-        previous_cats = new_list[:]
-        #Add the current item to the previous cat list
-        previous_cats.append((leading_spaces, KEGG_cat))
-        #Make a temp list of the previous and current category, used to find the corresponding kterms from the dictionary
-        temp_list = []
-        for cat in previous_cats:
-            temp_list.append(cat[1])
-        associated_kterms = K_term_dict[tuple(temp_list)]
-        associated_kterms_present = []
-        for kterm in associated_kterms:
-            if kterm in K_term_present:
-                associated_kterms_present.append(kterm)
-        out.write("{}{}\t{}/{}\n".format((leading_spaces*"-"), item[1], len(associated_kterms_present), len(associated_kterms)))
 
-####################################################################
-#MAIN
-####################################################################    
-if __name__ == "__main__":
-    #Acquire the input EggNOG file, output_filename, and the input database
-    input_eggnog = sys.argv[1]
-    out_file = sys.argv[2]
-    k_term_db = sys.argv[3]
-    #Parse the kterms per category into a dictionary
-    K_term_dict, hierarchy_list = parse_KEGG_kterm_db(k_term_db)
-    #Reconstruct the KEGG hierarchy
-    hierarchy_dict = reconstruct_KEGG_hierarchy(hierarchy_list)
-    #Parse the k terms found by EggNOG
-    K_term_present = eggnog_parser(input_eggnog)
+
+
+def read_kterm_json(json_path):
+    with open(json_path, "r") as s:
+        kterms = json.load(s)
+    return kterms
+
+
+def convert_dict_to_edgelist(treedict, terminal_node=None) -> List[Tuple[str, str]]:
+    # Takes in the json dict of kterms and converts BRITE part {1:{2:3} to the graph edges [(1,2)(2,3)]
+    edges = []
+    def get_edges(treedict, parent="root"):
+        name = next(iter(treedict.keys()))
+        if parent is not None:
+            edges.append((parent, name))
+
+        this_child = treedict[name]
+
+        if isinstance(this_child, str):
+            edges.append((name, this_child))
+        else:
+            for item in this_child:
+                if isinstance(item, list):
+                    for el in item:
+                        get_edges(el, parent=name)
+                elif isinstance(item, dict):
+                    get_edges(item, parent=name)
+                elif isinstance(item, str):
+                    get_edges(this_child, parent=name)
+    get_edges(treedict)
+    terminal_node_edges = (edges[-1][-1], terminal_node)
+    edges.append(terminal_node_edges)
+    return edges
+
+
+def convert_edgelist_to_graph(kterm_edgelist, kterm_dict):
+    # Main function that creates a graph from the list of adjacent nodes
+    kterm_graph = nx.DiGraph()
+    for i in range(0, len(kterm_edgelist)):
+        kterm_id = kterm_dict[i]["ENTRY"]
+        kterm_brite = kterm_dict[i]["BRITE"]
+        orthology_name = "KEGG Orthology (KO) [BR:ko00001]"
+        if isinstance(kterm_brite, list):
+            for el in kterm_brite:
+                if orthology_name in el.keys():
+                    this_el_edgelist = convert_dict_to_edgelist(el, kterm_id)
+                    kterm_graph.add_edges_from(this_el_edgelist)
+        else:
+            this_term_edgelist = convert_dict_to_edgelist(kterm_brite, kterm_id)
+            kterm_graph.add_edges_from(this_term_edgelist)
+    return kterm_graph
+
+
+def get_terminal_nodes(g: nx.DiGraph) -> Set[str]:
+    terminal_nodes = [n for n, d in g.degree if d == 1]
+    if "root" in terminal_nodes:
+        terminal_nodes.remove("root")
+    terminal_nodes = set(terminal_nodes)
+    return terminal_nodes
+
+
+def calc_kterm_enrichment(kterm_graph: nx.DiGraph, present_kterms: Set[str]) -> Dict[str, Tuple[int, int, str]]:
+    # For each node will find total number of kterms associated with it, and number of kterms from eggnog
+    terminal_node_list = get_terminal_nodes(kterm_graph)
+    enrichments = dict()
+    for node in kterm_graph.nodes:
+        des = list(nx.descendants(kterm_graph, node))
+        this_node_total_kterms = [n for n in des if n in terminal_node_list]
+        this_node_pres_kterms = set(this_node_total_kterms).intersection(present_kterms)
+        this_node_pres_kterms_str = ",".join(this_node_pres_kterms)
+        enrichments[node] = (len(this_node_pres_kterms), len(this_node_total_kterms), this_node_pres_kterms_str)
+    return enrichments
+
+
+def dedupe_hierarchy(lines: List[Tuple[str, str]]) -> List[Tuple[str, str]]:
+    # keep only first instances of hierarchical levels and 0 kterms
+    key_fun = lambda x: x[1]
+    seen = set()
+    out = []
+    for line in lines:
+        key = key_fun(line)
+        if re.match(r"^K\d{5}", key):
+            continue
+        if key not in seen:
+            seen.add(key)
+            out.append(line)
+    return out
+
+def path_top_bottom(graph: nx.DiGraph, node: Tuple[str, str]):
+    # Do the depth first search on the graph to find all the connected nodes
+    # Should start from the root
+    # The input is node tuple ("", node_id). The hierarchy is stored in the first value of tuple.
+    # The output is a list of node tuples with hierarchy in the first value of tuple.
+    all_paths = []
+    g_path = [node]
+    key_fun = lambda x: x[1]
+    def find_sux(graph, node, g_path, depth=0):
+        sux = list(graph.successors(key_fun(node)))
+        if sux == []:
+            all_paths.append(g_path)
+        else:
+            depth += 1
+            for s in sux:
+                new_s_name = (depth * "-", s)
+                this_suc_g_path = g_path.copy()
+                this_suc_g_path.append(new_s_name)
+                find_sux(graph, new_s_name, this_suc_g_path, depth)
+
+    find_sux(graph, node, g_path)
+
+    joined_paths = []
+    for path in all_paths:
+        joined_paths.extend(path)
+    return joined_paths
+
+
+def drop_orthology_and_root_from_hier(hier_repr: List[Tuple[str, str]]):
+    # Remove orthology and root to decrease number of dashes
+    new_hier = []
+    things_to_remove = {"KEGG Orthology (KO) [BR:ko00001]", "root"}
+    for line in hier_repr:
+        if line[1] in things_to_remove:
+            continue
+        else:
+            new_line = (line[0][2:], line[1])
+            new_hier.append(new_line)
+    return new_hier
+
+
+def create_hier_repr(kterm_graph) -> List[Tuple[str, str]]:
+    # Starting from the root do depth first search
+    # The output is a list of node tuples with hierarchy in the first value of tuple.
+    #hier_repr = [("---", node_name)]
+    full_hier = path_top_bottom(kterm_graph, ("","root"))
+    dedup_hier = dedupe_hierarchy(full_hier)
+    hier_repr = drop_orthology_and_root_from_hier(dedup_hier)
+    return hier_repr
+
+
+def add_enrichment_to_hier_list(hier_repr, enrichments) -> List[Tuple[str, str, int, int, str]]:
+    #hier_enrich = ["---", node_name, 10, 20, present_kterms_str_list]
+    hier_enrich = []
+    for node in hier_repr:
+        node_name = node[1]
+        enrichment = enrichments[node_name]
+        new_node = (node[0], node[1], *enrichment)
+        hier_enrich.append(new_node)
+    return hier_enrich
+
+
+def create_kterms_graph(kterm_json) -> nx.DiGraph:
+    # convert json file to the graph representation
+    kterms_edges = []
+    for term in kterm_json:
+        kterm_edgelist = convert_dict_to_edgelist(term)
+        kterms_edges.append(kterm_edgelist)
+    kterms_graph = convert_edgelist_to_graph(kterms_edges, kterm_json)
+    return kterms_graph
+
+def create_hierarchical_representation(kterms_graph, eggnog_kterms) -> List[Tuple[str, str, int, int, str]]:
+    # Create hierarchical representation based on the graph
+    # Add information about number of kterms per hierarchical level (enrichment)
+    eggnog_kterm_set = set(eggnog_kterms)
+    enrichments = calc_kterm_enrichment(kterms_graph, eggnog_kterm_set)
+    hier_repr = create_hier_repr(kterms_graph)
+    hier_enrich = add_enrichment_to_hier_list(hier_repr, enrichments)
+    return hier_enrich
+
+
+def convert_to_df_and_filter_zero(hier_repr_list) -> pd.DataFrame:
+    column_names = ["hierarchy_level", "kegg_orthology_name", "num_kterms_present", "num_total_kterms", "present_kterms"]
+    res_df = pd.DataFrame.from_records(hier_repr_list, columns=column_names)
+    zero_matches = res_df.index[res_df["num_kterms_present"] == 0]
+    res_df.drop(labels=zero_matches, axis=0, inplace=True)
+    return res_df
+
+
+def parseargs() -> Tuple[Path, Path, Path]:
+    parser = argparse.ArgumentParser(description="Estimate completion of the modules")
+    parser.add_argument("-k", help="Path to the k terms json file", required=True, dest="kterm_json_path", type=Path)
+    parser.add_argument("-e", help="Path to the eggnog file", required=True, dest="eggnogfile_path", type=Path)
+    parser.add_argument("-o", help="Path to the output tsv table", required=True, dest="out_path", type=Path)
+    args = parser.parse_args()
+    return args.kterm_json_path, args.eggnogfile_path, args.out_path
+
+
+def resolve_rel_path_list(path_list: List[Path]):
+    res_paths = []
+    for p in path_list:
+        res_paths.append(p.resolve())
+    return res_paths
+
+
+def main():
+    kterm_json_path, eggnogfile_path, out_path = parseargs()
+    kterm_json_path, eggnogfile_path, out_path = resolve_rel_path_list([kterm_json_path, eggnogfile_path, out_path])
+
+    print(f"Reading kterms from {kterm_json_path}")
+    kterm_json = read_kterm_json(kterm_json_path)
+
+    print(f"Parsing eggnog from {eggnogfile_path}")
+    eggnog_kterms = eggnog_parser(eggnogfile_path)
+
+    print("Creating summary")
+    kterms_graph = create_kterms_graph(kterm_json)
+    hier_repr = create_hierarchical_representation(kterms_graph, eggnog_kterms)
     #Output k terms found per category in hierarchical fashion, in full format
-    output_hierarchical_gene_count(hierarchy_dict,K_term_dict, K_term_present, out_file)
-    
-    
+
+    print(f"Saving summary to {out_path}")
+    res_df = convert_to_df_and_filter_zero(hier_repr)
+    res_df.to_csv(out_path, sep="\t", index=False)
+
+
+if __name__ == "__main__":
+    main()
