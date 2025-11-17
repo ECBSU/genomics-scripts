@@ -1,410 +1,294 @@
-from typing import List, Dict, Union, Tuple
+from typing import List, Dict, Union, Tuple, TypedDict
+import re
+from pathlib import Path
+from collections import defaultdict
+
 import networkx as nx
 import pandas as pd
 import argparse
-from pathlib import Path
+
+
+class Enrichment(TypedDict):
+    completion: float 
+    present_genes: List[str] 
+    pathway: List[str]
+    optional: List[str]
+
 
 ######################### Parsing the KEGG compressed graph representation
+def tokenize(pathway_str):
+    """Extract K-numbers and operators from pathway string."""
+    pattern = r"K\d+|[(),+\-\s]"
+    return [m.group() for m in re.finditer(pattern, pathway_str)]
 
-def parse_sequence(s, i=0, end_chars=None):
+
+def find_closing_paren(tokens, open_idx):
+    """Find matching closing parenthesis for opening paren at open_idx."""
+    depth = 1
+    for i in range(open_idx + 1, len(tokens)):
+        if tokens[i] == "(":
+            depth += 1
+        elif tokens[i] == ")":
+            depth -= 1
+            if depth == 0:
+                return i
+    return len(tokens) - 1
+
+
+def parse_element(tokens, idx, end_idx):
     """
-    Parse a sequence of items from string s starting at index i, until one of end_chars is reached.
-    Returns a tuple (elements_list, new_index).
-
-    Each item in elements_list is one of:
-      - a plain enzyme ID (string),
-      - a list of alternatives (each alternative is itself a list of elements),
-      - a tuple ("OPTIONAL", list_of_sequences), where each sequence is a list of elements.
-
-    Rules:
-      • Whitespace (spaces, tabs) and '+' both separate sequential sub‐elements.
-      • A '(' kicks off a bracketed group of alternatives, parsed by parse_alternatives.
-      • A ',' or ')' ends the current sequence (depending on end_chars).
-      • A '-' indicates an optional subchain:
-         – Skip the '-' itself,
-         – If the next character is '(' → parse a bracket of alternatives → wrap those alternatives
-           into one optional group,
-         – Otherwise parse a bare ID and wrap it as a one‐step optional group.
+    Parse single element: K-number or parenthesized group.
+    Returns: (edges, optional_nodes, entry_nodes, exit_nodes, next_index)
     """
-    if end_chars is None:
-        end_chars = []
-    elements = []
-    length = len(s)
+    if tokens[idx] == "(":
+        close_idx = find_closing_paren(tokens, idx)
+        edges, optional, entry, exit = parse_alternatives(tokens, idx + 1, close_idx - 1)
+        return edges, optional, entry, exit, close_idx + 1
+    else:
+        k_num = tokens[idx]
+        return [], set(), [k_num], [k_num], idx + 1
 
-    while i < length:
-        # 1) Skip whitespace
-        if s[i].isspace():
-            i += 1
-            continue
 
-        # 2) If we've reached an “end char” (',' or ')'), stop parsing this level
-        if s[i] in end_chars:
-            break
-
-        # 3) A '+' just separates (complex) steps → skip
-        if s[i] == '+':
-            i += 1
-            continue
-
-        # 4) A '-' means “start of an optional subchain”
-        if s[i] == '-':
-            i += 1
-            # Skip any whitespace after the '-'
-            while i < length and s[i].isspace():
-                i += 1
-
-            # If next char is '(', parse the bracketed alternatives as the optional group
-            if i < length and s[i] == '(':
-                alts, i = parse_alternatives(s, i + 1)
-                # alts is a list of alternative sequences (each itself a list of elements).
-                # Wrap it into one OPTIONAL‐tuple:
-                elements.append(("OPTIONAL", alts))
-
+def parse_operator_sequence(tokens, idx, end_idx):
+    """
+    Parse sequence connected by + (required) or - (optional) operators.
+    Returns: (edges, optional_nodes, entry_nodes, exit_nodes, next_index)
+    """
+    all_edges = []
+    all_optional = set()
+    
+    # Parse first element
+    edges, optional, entry, exit, idx = parse_element(tokens, idx, end_idx)
+    all_edges.extend(edges)
+    all_optional.update(optional)
+    
+    sequence_entry = entry
+    current_exits = exit
+    skip_nodes = []  # Nodes that can skip over optional sections
+    
+    # Continue while we see + or - operators
+    while idx <= end_idx and tokens[idx] in ("+", "-"):
+        operator = tokens[idx]
+        idx += 1
+        
+        # Parse next element
+        edges, optional, next_entry, next_exit, idx = parse_element(tokens, idx, end_idx)
+        all_edges.extend(edges)
+        all_optional.update(optional)
+        
+        if operator == "-":
+            # Optional section: mark nodes as optional
+            all_optional.update(next_entry)
+            all_optional.update(next_exit)
+            
+            # Track where we can skip from (start of optional chain)
+            if not skip_nodes:
+                skip_nodes = list(current_exits)
+            
+            # Connect through optional path
+            for curr in current_exits:
+                for nxt in next_entry:
+                    all_edges.append((curr, nxt))
+            
+            current_exits = next_exit
+            
+        else:  # operator == "+"
+            # Required section: connect normally
+            for curr in current_exits:
+                for nxt in next_entry:
+                    all_edges.append((curr, nxt))
+            
+            # Close any skip path
+            if skip_nodes:
+                # Merge: skip_nodes can jump to next_exit, or go through optional path
+                current_exits = list(set(skip_nodes + next_exit))
+                skip_nodes = []
             else:
-                # Otherwise parse a bare enzyme ID (until whitespace or special char)
-                j = i
-                while j < length and not s[j].isspace() and s[j] not in end_chars \
-                        and s[j] not in ['+', '-', '(', ')', ',']:
-                    j += 1
-                token = s[i:j].strip()
-                if token:
-                    # Wrap that single ID into a one‐step optional group
-                    elements.append(("OPTIONAL", [[token]]))
-                i = j
+                current_exits = next_exit
+    
+    # If we ended with optional sections, enable skip path
+    if skip_nodes:
+        current_exits = list(set(skip_nodes + current_exits))
+    
+    return all_edges, all_optional, sequence_entry, current_exits, idx
 
-            continue
 
-        # 5) A '(' means “start a bracketed alternative group”
-        if s[i] == '(':
-            alts, i = parse_alternatives(s, i + 1)
-            # alts is a list of alternative sequences; append it directly
-            elements.append(alts)
-            continue
-
-        # 6) Otherwise it’s a bare enzyme ID (collect until whitespace or a special char)
-        j = i
-        while j < length and not s[j].isspace() and s[j] not in end_chars \
-                and s[j] not in ['+', '-', '(', ')', ',']:
-            j += 1
-        token = s[i:j].strip()
-        if token:
-            elements.append(token)
-        i = j
-
-    return elements, i
-
-def parse_alternatives(s, i):
+def parse_space_sequence(tokens, idx, end_idx):
     """
-    Parse a comma‐separated list of alternatives from s starting at index i (just after '(').
-    Stops when the matching ')' is found. Returns (list_of_alternatives, new_index).
-
-    Each alternative is itself parsed by parse_sequence(...) up to the next ',' or ')'.
+    Parse space-separated sequence (sequential steps).
+    Returns: (edges, optional_nodes, entry_nodes, exit_nodes, next_index)
     """
-    alternatives = []
-    length = len(s)
-
-    while i < length:
-        # Parse one alternative as a sequence until we hit ',' or ')'
-        alt_seq, i = parse_sequence(s, i, end_chars=[',', ')'])
-        alternatives.append(alt_seq)
-
-        if i >= length:
+    all_edges = []
+    all_optional = set()
+    
+    # Parse first operator sequence
+    edges, optional, entry, exit, idx = parse_operator_sequence(tokens, idx, end_idx)
+    all_edges.extend(edges)
+    all_optional.update(optional)
+    
+    sequence_entry = entry
+    current_exits = exit
+    
+    # Continue while we see spaces (indicating sequential steps)
+    while idx <= end_idx and tokens[idx] == " ":
+        idx += 1
+        if idx > end_idx or tokens[idx] == ",":
             break
-        if s[i] == ',':
-            i += 1  # skip comma and parse next alt
+        
+        # Parse next operator sequence
+        edges, optional, next_entry, next_exit, idx = parse_operator_sequence(tokens, idx, end_idx)
+        all_edges.extend(edges)
+        all_optional.update(optional)
+        
+        # Connect previous exits to next entries
+        for prev in current_exits:
+            for nxt in next_entry:
+                all_edges.append((prev, nxt))
+        
+        current_exits = next_exit
+    
+    return all_edges, all_optional, sequence_entry, current_exits, idx
+
+
+def parse_alternatives(tokens, start_idx, end_idx):
+    """
+    Parse comma-separated alternatives (parallel paths).
+    Returns: (edges, optional_nodes, entry_nodes, exit_nodes)
+    """
+    all_edges = []
+    all_optional = set()
+    all_entries = []
+    all_exits = []
+    
+    idx = start_idx
+    while idx <= end_idx:
+        if tokens[idx] == ",":
+            idx += 1
             continue
-        if s[i] == ')':
-            i += 1  # skip closing ')'
-            break
+        
+        # Parse one alternative (space-separated sequence)
+        edges, optional, entry, exit, idx = parse_space_sequence(tokens, idx, end_idx)
+        
+        all_edges.extend(edges)
+        all_optional.update(optional)
+        all_entries.extend(entry)
+        all_exits.extend(exit)
+    
+    return all_edges, all_optional, all_entries, all_exits
 
-    return alternatives, i
 
-def merge_optional_elements(elements):
-    """
-    In a single list of parsed elements, merge consecutive ("OPTIONAL", ...) items
-    into a single OPTIONAL group whose sequences are the concatenation of each pair.
+def parse_pathway(pathway_str):
+    """Parse KEGG pathway string into edges and optional nodes."""
+    tokens = tokenize(pathway_str)
+    
+    all_edges = []
+    all_optional = set()
+    current_exits = ["BEGIN"]
+    
+    idx = 0
+    while idx < len(tokens):
+        if tokens[idx] == " ":
+            idx += 1
+            continue
+        
+        # Parse one top-level step
+        edges, optional, entry, exit, idx = parse_operator_sequence(tokens, idx, len(tokens) - 1)
+        
+        # Connect previous step to current step
+        for prev in current_exits:
+            for curr in entry:
+                all_edges.append((prev, curr))
+        
+        all_edges.extend(edges)
+        all_optional.update(optional)
+        current_exits = exit
+    
+    # Connect to END
+    for node in current_exits:
+        all_edges.append((node, "END"))
+    
+    return all_edges, all_optional
 
-    For example:
-      elements = ["A", ("OPTIONAL", [["X"], ["Y"]]), ("OPTIONAL", [["Z"]]), "B"]
-    → we want one OPTIONAL whose sequences = [ ["X","Z"], ["Y","Z"] ].
-    """
-    merged = []
-    i = 0
-    while i < len(elements):
-        if isinstance(elements[i], tuple) and elements[i][0] == "OPTIONAL":
-            combined_seqs = elements[i][1]  # this is a list of sequences (each seq is a list of elements)
-            i += 1
-            # As long as the next element is also an OPTIONAL, keep merging
-            while i < len(elements) and isinstance(elements[i], tuple) and elements[i][0] == "OPTIONAL":
-                next_seqs = elements[i][1]
-                new_comb = []
-                for seq1 in combined_seqs:
-                    for seq2 in next_seqs:
-                        new_comb.append(seq1 + seq2)
-                combined_seqs = new_comb
-                i += 1
-            merged.append(("OPTIONAL", combined_seqs))
-        else:
-            merged.append(elements[i])
-            i += 1
-    return merged
 
-def recursive_merge(elements):
-    """
-    Recursively traverse each element, merging OPTIONAL groups at every nesting level.
+def sanitise_pathway_str(pathway_str_input):
+    pathway_str_s = re.sub("--", "", pathway_str_input)
+    pathway_str_s = re.sub(r"\s-K", " K", pathway_str_s)
+    pathway_str_s = re.sub(r"\s+", " ", pathway_str_s)
+    pathway_str_s = pathway_str_s.strip()
+    return pathway_str_s
 
-    If an element is:
-      - a plain string → leave it,
-      - a list of alternatives → recurse into each alternative (which is itself a list of elements),
-      - an ("OPTIONAL", seqs) tuple → for each seq (a list of elements), recurse into that seq.
 
-    After recursion, we also call merge_optional_elements(...) on the top‐level list.
-    """
-    new_elems = []
-    for elem in elements:
-        if isinstance(elem, str):
-            new_elems.append(elem)
-
-        elif isinstance(elem, list):
-            # This is a bracketed‐alternative group: a list of alternative sequences
-            merged_alts = []
-            for alt in elem:   # alt is a list of elements
-                processed_alt = recursive_merge(alt)
-                processed_alt = merge_optional_elements(processed_alt)
-                merged_alts.append(processed_alt)
-            new_elems.append(merged_alts)
-
-        else:
-            # Must be ("OPTIONAL", seqs)
-            tag, seqs = elem
-            if tag != "OPTIONAL":
-                raise ValueError(f"Unknown element type: {elem!r}")
-            merged_seqs = []
-            for seq in seqs:  # seq is itself a list of elements
-                processed_seq = recursive_merge(seq)
-                processed_seq = merge_optional_elements(processed_seq)
-                merged_seqs.append(processed_seq)
-            new_elems.append(("OPTIONAL", merged_seqs))
-
-    return new_elems
-
-def old_process_elements(elements, prev_ids, edges):
-    """
-    Given parsed elements (each of which may be):
-       • a string (enzyme ID),
-       • a list (alternatives),
-       • a tuple ("OPTIONAL", list_of_sequences),
-    and a list prev_ids (the “upstream” nodes to connect from),
-    append (source,target) edges into `edges` and return the new leaves.
-
-    Rules:
-      1) If elem is a string "X":
-         - For each p in prev_ids, append (p, "X")
-         - Then current_prev = ["X"].
-
-      2) If elem is a list (i.e. bracketed alternatives):
-         - For each alternative sequence alt_seq (which itself is a list of elements),
-           call process_elements(alt_seq, prev_ids, edges) to get leaves_for_that_alt.
-         - Combine all those leaves into new current_prev.
-
-      3) If elem is ("OPTIONAL", seqs):
-         - We have two possibilities: “skip” or “take” the entire optional subchain.
-         - Let leaves_skip = prev_ids
-         - For each sequence seq in seqs:
-             • call process_elements(seq, prev_ids, edges) to build edges for “taking” that chain.
-             • collect the leaves from that taken path.
-         - new current_prev = leaves_skip + (all leaves from taken‐paths)
-    """
-    current_prev = prev_ids
-
-    for elem in elements:
-        # Case 1: a plain ID
-        if isinstance(elem, str):
-            for p in current_prev:
-                edges.append((p, elem))
-            current_prev = [elem]
-
-        # Case 2: bracketed‐alternatives
-        elif isinstance(elem, list):
-            all_leaves = []
-            for alt_seq in elem:
-                alt_leaves = process_elements(alt_seq, current_prev, edges)
-                all_leaves.extend(alt_leaves)
-            current_prev = all_leaves
-
-        # Case 3: an optional‐chain marker
-        else:
-            tag, seqs = elem
-            if tag != "OPTIONAL":
-                raise ValueError(f"Unexpected element: {elem!r}")
-
-            # 3a) If we skip the entire optional chain, leaves_skip = current_prev
-            leaves_skip = list(current_prev)
-
-            # 3b) If we take it, we must traverse each possible sub‐sequence in seqs
-            leaves_taken = []
-            for seq in seqs:
-                taken_leaves = process_elements(seq, current_prev, edges)
-                leaves_taken.extend(taken_leaves)
-
-            # 3c) New “current_prev” is union of skip‐leaves and taken‐leaves
-            current_prev = leaves_skip + leaves_taken
-
-    return current_prev
-
-def old_build_pathway_graph(pathway_str: str):
-    """
-    Top‐level function. Given a pathway_str that can contain:
-      - plain IDs (e.g. "K00789"),
-      - complexes joined by '+',
-      - optional subchains joined by '-',
-      - bracketed alternatives "(A,B,C,...)" with commas,
-
-    this builds a directed acyclic graph (DAG) whose edges reflect:
-      BEGIN → first step(s),
-      step → next step(s),
-      optional chains either skipped or fully taken,
-      bracketed alternatives branched,
-      final leaves → END.
-
-    Returns (G, edges), where G is a networkx.DiGraph and edges is the Python list of (src, dst).
-    """
-    # 1) First parse into a raw “elements” list
-    parsed, _ = parse_sequence(pathway_str, 0, end_chars=[])
-
-    # 2) Recursively merge nested OPTIONAL groups
-    parsed_rec = recursive_merge(parsed)
-
-    # 3) Merge any consecutive OPTIONAL markers at this top level
-    parsed_clean = merge_optional_elements(parsed_rec)
-
-    # 4) Walk the cleaned elements, building edges
-    edges = []
-    leaves = process_elements(parsed_clean, ["BEGIN"], edges)
-
-    # 5) Connect every final leaf to "END"
-    for leaf in leaves:
-        edges.append((leaf, "END"))
-
-    # 6) Build the NetworkX graph
+def create_pathway_graph(pathway_str_input):
+    """Create NetworkX DiGraph from KEGG pathway string."""
+    pathway_str = sanitise_pathway_str(pathway_str_input)
+    edges, optional_nodes = parse_pathway(pathway_str)
+    
     G = nx.DiGraph()
     G.add_edges_from(edges)
+    
+    optional_attr = dict()
+    for node in G.nodes():
+        optional_attr[node] = node in optional_nodes
+    nx.set_node_attributes(G, optional_attr, "is_optional")
     return G
 
-
-def process_elements(elements, prev_ids, edges, node_optional, optional_context=False):
-    """
-    elements: parsed list where each item is:
-        - string (enzyme ID)
-        - list (bracketed alternatives; each alternative is a list of elements)
-        - ("OPTIONAL", list_of_sequences) where each sequence is a list of elements
-    prev_ids: list of upstream node ids
-    edges: list to append (src, dst) tuples
-    node_optional: dict mapping node_id -> bool (is_optional)
-    optional_context: boolean, True if current call is within an optional chain
-
-    Returns: list of leaf node ids after processing elements
-    """
-    current_prev = prev_ids
-
-    for elem in elements:
-        # Plain ID
-        if isinstance(elem, str):
-            # mark node optional if any time this element is seen under optional_context
-            node_optional[elem] = node_optional.get(elem, False) or optional_context
-            for p in current_prev:
-                edges.append((p, elem))
-            current_prev = [elem]
-
-        # Bracketed alternatives (list)
-        elif isinstance(elem, list):
-            all_leaves = []
-            for alt_seq in elem:
-                # alt_seq processed with the same optional_context as the container
-                alt_leaves = process_elements(alt_seq, current_prev, edges, node_optional, optional_context=optional_context)
-                all_leaves.extend(alt_leaves)
-            current_prev = all_leaves
-
-        # OPTIONAL tuple
-        else:
-            tag, seqs = elem
-            if tag != "OPTIONAL":
-                raise ValueError(f"Unexpected element: {elem!r}")
-
-            # skipping the optional chain: leaves_skip = current_prev
-            leaves_skip = list(current_prev)
-
-            # taking the optional chain: mark everything inside as optional_context=True
-            leaves_taken = []
-            for seq in seqs:
-                taken_leaves = process_elements(seq, current_prev, edges, node_optional, optional_context=True)
-                leaves_taken.extend(taken_leaves)
-
-            # union skip + taken
-            current_prev = leaves_skip + leaves_taken
-
-    return current_prev
-
-
-def build_pathway_graph(pathway_str):
-    """
-    Parse pathway_str and build graph and node optional labels.
-
-    Returns: (G, edges, node_optional)
-    - G: networkx.DiGraph with node attribute 'is_optional' set for each node
-    - edges: list of (src, dst) tuples
-    - node_optional: dict mapping node -> bool
-    """
-    # 1) parse and normalize optional groups
-    parsed, _ = parse_sequence(pathway_str, 0, end_chars=[])
-    parsed_rec = recursive_merge(parsed)
-    parsed_clean = merge_optional_elements(parsed_rec)
-
-    # 2) build edges while collecting node optional flags
-    edges = []
-    node_optional = {}
-
-    node_optional["BEGIN"] = False
-    leaves = process_elements(parsed_clean, ["BEGIN"], edges, node_optional, optional_context=False)
-
-    # mark final leaves' optional flags if they were in optional_context already (process_elements handled it)
-    # connect leaves to END
-    for leaf in leaves:
-        edges.append((leaf, "END"))
-
-    node_optional["END"] = False
-
-    # 3) create graph and set node attributes
-    G = nx.DiGraph()
-    G.add_edges_from(edges)
-
-    # Ensure all nodes appear in node_optional map (if a node appears but wasn't assigned yet)
-    for n in G.nodes():
-        if n not in node_optional:
-            node_optional[n] = False
-
-    # Assign attribute to each node
-    for n, is_opt in node_optional.items():
-        if n in G:
-            G.nodes[n]['is_optional'] = bool(is_opt)
-    return G
 
 ################################# Shortest path search
+def handle_ambiguous_path(graph, target_nodes):
+    # When there are nodes that do not belong to the unique shortest path
+    # will find the the shortest path from beginning to end that includes
+    # maximum nodes from the user
 
-def find_shortest_path_through(graph: nx.DiGraph, target_nodes: List[str], start='BEGIN', end='END') -> List[str]:
+    sp_list = []    
+    for target in target_nodes:
+        segment_1 = nx.shortest_path(graph, "BEGIN", target)
+        segment_2 = nx.shortest_path(graph, target, "END")
+        this_node_sp = segment_1 + segment_2
+        sp_list.append(this_node_sp)
+    
+    optional_dict = nx.get_node_attributes(graph, "is_optional")
+    path_info = defaultdict(dict)
+    path_scores = []
+    for i, path in enumerate(sp_list):
+        path_info[i]["length"] = -len(sp_list)
+        path_info[i]["present"] = 0
+        for target in target_nodes:
+            if target in path:
+                is_optional = optional_dict[target]
+                if is_optional:
+                    path_info[i]["present"] += 1
+                else:
+                    path_info[i]["present"] += 2
+        path_info[i]["score"] = path_info[i]["length"] + path_info[i]["present"]
+        path_scores.append(path_info[i]["score"])		   
+    best_path_id = path_scores.index(max(path_scores))
+    best_path = sp_list[best_path_id]
+    return best_path
+            	   
+        
+
+def find_shortest_path_through(graph: nx.DiGraph, target_nodes: List[str]) -> List[str]:
     # Build path segments
     full_path = []
-    current = start
-    for target in target_nodes:
-        segment = nx.shortest_path(graph, current, target)
-        if full_path:
-            full_path += segment[1:]  # Avoid repeating current node
+    extended_target_nodes = target_nodes + ["END"]
+    current = "BEGIN"
+    
+    is_path_broken = False
+    for target in extended_target_nodes:
+        try:
+            segment = nx.shortest_path(graph, current, target)
+        except nx.NetworkXNoPath:
+            is_path_broken = True
+            print("Problematic assignment ", target_nodes)
+            break
+        if full_path != []:
+            full_path.extend(segment[1:])  # Avoid repeating current node
         else:
-            full_path += segment
+            full_path.extend(segment)
         current = target
-    # Path from last target to END
-    segment = nx.shortest_path(graph, current, end)
-    full_path += segment[1:]
+    
+    if is_path_broken:
+        full_path = handle_ambiguous_path(graph, target_nodes)
     return full_path
 
 
@@ -412,16 +296,18 @@ def process_all_kegg_modules_to_pathways(kegg_dict: Dict[str, List[str]]) -> Dic
     kegg_pathways = dict()
     for k_id, pathway_kegg in kegg_dict.items():
         pathway_str = pathway_kegg[0]
-        print(k_id, pathway_str)
-        pathway_graph = build_pathway_graph(pathway_str)
+        if "M" in pathway_str:
+            continue
+        pathway_graph = create_pathway_graph(pathway_str)
         kegg_pathways[k_id] = pathway_graph
     return kegg_pathways
+
 
 def find_in_which_pathway(target_gene_list: List[str], kegg_pathways: Dict[str, nx.DiGraph]) -> Dict[str, List[str]]:
     target_genes = set(target_gene_list)
     pathways_with_target_genes = dict()
-    for gene in target_genes:
-        for k_id, pathway_g in kegg_pathways.items():
+    for k_id, pathway_g in kegg_pathways.items():
+        for gene in target_genes:  
             if pathway_g.has_node(gene):
                 if k_id in pathways_with_target_genes:
                     pathways_with_target_genes[k_id] += [gene]
@@ -439,7 +325,7 @@ def list_optional_nodes(pathway_graph: nx.DiGraph, node_list: List[str]):
     return optional_nodes
 
 
-def compute_completion(pathway_graph: nx.DiGraph, target_genes: List[str]) -> Dict[str, Union[str, List[str], List[str]]]:
+def compute_completion(pathway_graph: nx.DiGraph, target_genes: List[str]) -> Enrichment:
     shortest_path_through_nodes = find_shortest_path_through(pathway_graph, target_genes)
     full_pathway_li = shortest_path_through_nodes[1:-1]
     completion = round(len(target_genes) / len(full_pathway_li),3)
@@ -456,18 +342,44 @@ def sort_nodes(in_graph: nx.DiGraph, in_nodes: List[str]) -> List[str]:
     return sorted_nodes
 
 
-def compute_completion_of_all_pathways(kegg_pathways: Dict[str, nx.DiGraph], pathways_with_target_genes: Dict[str, List[str]]) -> Dict[str, Union[str, List[str], List[str]]]:
+def compute_completion_of_all_pathways(kegg_pathways: Dict[str, nx.DiGraph], pathways_with_target_genes: Dict[str, List[str]]) -> Dict[str, Enrichment]:
     completion_res = dict()
     for k_id, pathway_g in kegg_pathways.items():
         if k_id in pathways_with_target_genes:
-            print(k_id, pathways_with_target_genes[k_id])
             target_genes = sort_nodes(pathway_g, pathways_with_target_genes[k_id])
+            print(k_id)
             completion_info = compute_completion(pathway_g, target_genes)
             completion_res[k_id] = completion_info
         else:
             completion_res[k_id] = {"completion": 0.0, "present_genes": [], "pathway": [], "optional": []}
     return completion_res
 
+#################################
+
+
+def mark_chosen_path_in_graph(pathway_graph: nx.DiGraph, path_g: List[str], target_genes: List[str]):
+    marked_graph = pathway_graph.copy()
+    is_path_attr = dict()
+    is_present_attr = dict()
+    for node in pathway_graph.nodes():
+        is_path_attr[node] = node in path_g
+        is_present_attr[node] = node in target_genes
+    nx.set_node_attributes(marked_graph, is_path_attr, "is_path")
+    nx.set_node_attributes(marked_graph, is_present_attr, "is_present")
+    return marked_graph
+
+
+def add_attributes_to_all_graphs(pathway_graphs: Dict[str, nx.DiGraph], completion_all_pathways: Dict[str, Enrichment]) -> Dict[str, nx.DiGraph]:
+    marked_graphs = dict()
+    for g_name in pathway_graphs:
+        graph = pathway_graphs[g_name]
+        present_genes = completion_all_pathways[g_name]["present_genes"]
+        if len(present_genes) == 0:
+            continue
+        path_g = completion_all_pathways[g_name]["pathway"]
+        marked_path = mark_chosen_path_in_graph(graph, path_g, present_genes)
+        marked_graphs[g_name] = marked_path
+    return marked_graphs
 
 
 #################################
@@ -478,7 +390,7 @@ def gen_line_reader(file_path):
         yield line
 
 
-def KEGG_module_reader(KEGG_module_file_path) -> Dict[str, str]:
+def KEGG_module_reader(KEGG_module_file_path) -> Dict[str, List[str]]:
     """
     Output a dict of module_id+name: str kos
     Reads a database of KEGG module definitions and outputs a dictionary
@@ -495,7 +407,6 @@ def KEGG_module_reader(KEGG_module_file_path) -> Dict[str, str]:
             continue
         if line.startswith("Module:"):
             name = line.partition("Module:")[2].strip()
-            print(name)
             if name not in KEGG_dict:
                 KEGG_dict[name] = []
         if line.startswith("Definition:"):
@@ -549,9 +460,9 @@ def parse_args() -> Tuple[Path, Path, Path]:
     parser = argparse.ArgumentParser(description="Estimate completion of the modules")
     parser.add_argument("-m", help="Path to the module file", required=True, dest="mod_path", type=Path)
     parser.add_argument("-e", help="Path to the eggnog file", required=True, dest="eggnogfile_path", type=Path)
-    parser.add_argument("-o", help="Path to the output tsv table", required=True, dest="out_path", type=Path)
+    parser.add_argument("-o", help="Path to the output directory", required=True, dest="out_dir", type=Path)
     args = parser.parse_args()
-    return args.mod_path, args.eggnogfile_path, args.out_path
+    return args.mod_path, args.eggnogfile_path, args.out_dir
 
 
 def resolve_rel_path_list(path_list: List[Path]):
@@ -562,8 +473,10 @@ def resolve_rel_path_list(path_list: List[Path]):
 
 
 def main():
-    mod_path, eggnogfile_path, out_path = parse_args()
-    mod_path, eggnogfile_path, out_path = resolve_rel_path_list([mod_path, eggnogfile_path, out_path])
+    mod_path, eggnogfile_path, out_dir = parse_args()
+    mod_path, eggnogfile_path, out_dir = resolve_rel_path_list([mod_path, eggnogfile_path, out_dir])
+    out_dir.mkdir(exist_ok=True)
+    
     print(f"Parsing the module list from {mod_path}")
     kegg_modules = KEGG_module_reader(mod_path)
     kegg_pathways = process_all_kegg_modules_to_pathways(kegg_modules)
@@ -577,7 +490,18 @@ def main():
 
     print("Writing to a table")
     completion_df = convert_completion_dict_to_df(completion_of_all_pathways)
+    
 
+    marked_graphs = add_attributes_to_all_graphs(kegg_pathways, completion_of_all_pathways)
+    graph_dir = out_dir / "graphs"
+    graph_dir.mkdir(exist_ok=True)
+    print(f"Saving graph information to {graph_dir}")
+    for name, graph in marked_graphs.items():
+        mod_id = name[:5]
+        out_file_path = graph_dir / f"{mod_id}_graph.gml"
+        nx.write_gml(graph, out_file_path)
+
+    out_path = out_dir / "modules.tsv"
     print(f"Saving results to {out_path}")
     completion_df.to_csv(out_path, sep="\t", index=True)
     print("Done")
