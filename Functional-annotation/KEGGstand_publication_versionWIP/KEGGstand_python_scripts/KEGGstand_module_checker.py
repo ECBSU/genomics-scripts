@@ -456,7 +456,7 @@ def convert_completion_dict_to_df(completion_dict):
     return completion_df
 
 
-def parse_args() -> Tuple[Path, Path, Path]:
+def parseargs() -> Tuple[Path, Path, Path]:
     parser = argparse.ArgumentParser(description="Estimate completion of the modules")
     parser.add_argument("-m", help="Path to the module file", required=True, dest="mod_path", type=Path)
     parser.add_argument("-e", help="Path to the eggnog file", required=True, dest="eggnogfile_path", type=Path)
@@ -473,7 +473,7 @@ def resolve_rel_path_list(path_list: List[Path]):
 
 
 def main():
-    mod_path, eggnogfile_path, out_dir = parse_args()
+    mod_path, eggnogfile_path, out_dir = parseargs()
     mod_path, eggnogfile_path, out_dir = resolve_rel_path_list([mod_path, eggnogfile_path, out_dir])
     out_dir.mkdir(exist_ok=True)
     
