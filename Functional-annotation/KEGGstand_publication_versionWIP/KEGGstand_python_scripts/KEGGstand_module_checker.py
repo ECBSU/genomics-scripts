@@ -497,7 +497,7 @@ def main():
     graph_dir.mkdir(exist_ok=True)
     print(f"Saving graph information to {graph_dir}")
     for name, graph in marked_graphs.items():
-        mod_id = name[:5]
+        mod_id = name[:6]
         out_file_path = graph_dir / f"{mod_id}_graph.gml"
         nx.write_gml(graph, out_file_path)
 
