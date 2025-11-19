@@ -2,6 +2,7 @@ from typing import List, Dict, Union, Tuple, TypedDict
 import re
 from pathlib import Path
 from collections import defaultdict
+from itertools import chain, combinations
 
 import networkx as nx
 import pandas as pd
@@ -234,37 +235,42 @@ def create_pathway_graph(pathway_str_input):
 
 
 ################################# Shortest path search
-def handle_ambiguous_path(graph, target_nodes):
+def handle_conflicting_path(graph, target_nodes):
     # When there are nodes that do not belong to the unique shortest path
     # will find the the shortest path from beginning to end that includes
     # maximum nodes from the user
+    take_num_li = list(range(1, len(target_nodes)))
+    combs = [combinations(target_nodes, take_num) for take_num in take_num_li]
+    all_possible_comb = [iter for iter in chain.from_iterable(combs)]
 
-    sp_list = []    
-    for target in target_nodes:
-        segment_1 = nx.shortest_path(graph, "BEGIN", target)
-        segment_2 = nx.shortest_path(graph, target, "END")
-        this_node_sp = segment_1 + segment_2
-        sp_list.append(this_node_sp)
+    all_comb_shortest_paths = []
+    for comb in all_possible_comb:
+        source = "BEGIN"
+        this_comb_path = []
+        comb_extended = list(comb) + ["END"]
+
+        for target in comb_extended:
+            try:
+                segment = nx.shortest_path(graph, source, target)
+            except nx.NetworkXNoPath:
+                this_comb_path = [None]
+                break
+            if this_comb_path != []:
+                this_comb_path.extend(segment[1:])  # Avoid repeating current node
+            else:
+                this_comb_path.extend(segment)
+            source = target
+        all_comb_shortest_paths.append(this_comb_path)
     
-    optional_dict = nx.get_node_attributes(graph, "is_optional")
-    path_info = defaultdict(dict)
-    path_scores = []
-    for i, path in enumerate(sp_list):
-        path_info[i]["length"] = -len(sp_list)
-        path_info[i]["present"] = 0
-        for target in target_nodes:
-            if target in path:
-                is_optional = optional_dict[target]
-                if is_optional:
-                    path_info[i]["present"] += 1
-                else:
-                    path_info[i]["present"] += 2
-        path_info[i]["score"] = path_info[i]["length"] + path_info[i]["present"]
-        path_scores.append(path_info[i]["score"])		   
-    best_path_id = path_scores.index(max(path_scores))
-    best_path = sp_list[best_path_id]
+    completion_scores = []
+    for path in all_comb_shortest_paths:
+        present_target_genes = [t for t in target_nodes if t in path]
+        completion = len(present_target_genes) / len(path)
+        completion_scores.append(completion)
+    max_score = max(completion_scores)
+    max_score_id = completion_scores.index(max_score)
+    best_path = all_comb_shortest_paths[max_score_id]
     return best_path
-            	   
         
 
 def find_shortest_path_through(graph: nx.DiGraph, target_nodes: List[str]) -> List[str]:
@@ -273,13 +279,13 @@ def find_shortest_path_through(graph: nx.DiGraph, target_nodes: List[str]) -> Li
     extended_target_nodes = target_nodes + ["END"]
     current = "BEGIN"
     
-    is_path_broken = False
+    is_path_conflicting = False
     for target in extended_target_nodes:
         try:
             segment = nx.shortest_path(graph, current, target)
         except nx.NetworkXNoPath:
-            is_path_broken = True
-            print("Problematic assignment ", target_nodes)
+            is_path_conflicting = True
+            print("Conflicting path in these nodes", target_nodes)
             break
         if full_path != []:
             full_path.extend(segment[1:])  # Avoid repeating current node
@@ -287,32 +293,32 @@ def find_shortest_path_through(graph: nx.DiGraph, target_nodes: List[str]) -> Li
             full_path.extend(segment)
         current = target
     
-    if is_path_broken:
-        full_path = handle_ambiguous_path(graph, target_nodes)
+    if is_path_conflicting:
+        full_path = handle_conflicting_path(graph, target_nodes)
     return full_path
 
 
 def process_all_kegg_modules_to_pathways(kegg_dict: Dict[str, List[str]]) -> Dict[str, nx.DiGraph]:
     kegg_pathways = dict()
-    for k_id, pathway_kegg in kegg_dict.items():
+    for mod_name, pathway_kegg in kegg_dict.items():
         pathway_str = pathway_kegg[0]
         if "M" in pathway_str:
             continue
         pathway_graph = create_pathway_graph(pathway_str)
-        kegg_pathways[k_id] = pathway_graph
+        kegg_pathways[mod_name] = pathway_graph
     return kegg_pathways
 
 
 def find_in_which_pathway(target_gene_list: List[str], kegg_pathways: Dict[str, nx.DiGraph]) -> Dict[str, List[str]]:
     target_genes = set(target_gene_list)
     pathways_with_target_genes = dict()
-    for k_id, pathway_g in kegg_pathways.items():
+    for mod_name, pathway_g in kegg_pathways.items():
         for gene in target_genes:  
             if pathway_g.has_node(gene):
-                if k_id in pathways_with_target_genes:
-                    pathways_with_target_genes[k_id] += [gene]
+                if mod_name in pathways_with_target_genes:
+                    pathways_with_target_genes[mod_name] += [gene]
                 else:
-                    pathways_with_target_genes[k_id] = [gene]
+                    pathways_with_target_genes[mod_name] = [gene]
     return pathways_with_target_genes
 
 
@@ -328,7 +334,8 @@ def list_optional_nodes(pathway_graph: nx.DiGraph, node_list: List[str]):
 def compute_completion(pathway_graph: nx.DiGraph, target_genes: List[str]) -> Enrichment:
     shortest_path_through_nodes = find_shortest_path_through(pathway_graph, target_genes)
     full_pathway_li = shortest_path_through_nodes[1:-1]
-    completion = round(len(target_genes) / len(full_pathway_li),3)
+    present_target_genes = [t for t in target_genes if t in full_pathway_li]
+    completion = round(len(present_target_genes) / len(full_pathway_li),3)
     optional_genes = list_optional_nodes(pathway_graph, shortest_path_through_nodes)
     res = {"completion": completion, "present_genes": target_genes, "pathway": full_pathway_li, "optional": optional_genes}
     return res
@@ -344,14 +351,13 @@ def sort_nodes(in_graph: nx.DiGraph, in_nodes: List[str]) -> List[str]:
 
 def compute_completion_of_all_pathways(kegg_pathways: Dict[str, nx.DiGraph], pathways_with_target_genes: Dict[str, List[str]]) -> Dict[str, Enrichment]:
     completion_res = dict()
-    for k_id, pathway_g in kegg_pathways.items():
-        if k_id in pathways_with_target_genes:
-            target_genes = sort_nodes(pathway_g, pathways_with_target_genes[k_id])
-            print(k_id)
+    for mod_name, pathway_g in kegg_pathways.items():
+        if mod_name in pathways_with_target_genes:
+            target_genes = sort_nodes(pathway_g, pathways_with_target_genes[mod_name])
             completion_info = compute_completion(pathway_g, target_genes)
-            completion_res[k_id] = completion_info
+            completion_res[mod_name] = completion_info
         else:
-            completion_res[k_id] = {"completion": 0.0, "present_genes": [], "pathway": [], "optional": []}
+            completion_res[mod_name] = {"completion": 0.0, "present_genes": [], "pathway": [], "optional": []}
     return completion_res
 
 #################################
